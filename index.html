@@ -30,37 +30,21 @@ body{margin:0;background:var(--bg);color:var(--txt);font-family:var(--ui);font-s
   overflow:hidden;height:100vh;-webkit-font-smoothing:antialiased;
   font-variant-numeric:tabular-nums}
 canvas{display:block;position:fixed;inset:0;touch-action:none}
-.hud{position:fixed;inset:0;pointer-events:none;z-index:10;
-  opacity:0;transition:opacity .6s ease}
-/* L'interface n'existe qu'en jeu : sur l'accueil elle transparaissait
-   sous le panneau et brouillait tout. */
-body.playing .hud{opacity:1}
+.hud{position:fixed;inset:0;pointer-events:none;z-index:10}
 .hud > *{pointer-events:auto}
-/* Chaque coin est une colonne : les éléments s'empilent avec un écart
-   constant et ne peuvent plus se chevaucher, quel qu'en soit le nombre. */
-.zone{display:flex;flex-direction:column;gap:10px;
-  pointer-events:none;max-width:min(340px,42vw)}
-.zone > *{pointer-events:auto}
-.tl{top:16px;left:16px;align-items:flex-start}
-.tr{top:16px;right:16px;align-items:flex-end;text-align:right}
-.bl{bottom:16px;left:16px;align-items:flex-start;justify-content:flex-end}
-.br{bottom:16px;right:16px;align-items:flex-end}
-.bc{bottom:16px;left:50%;transform:translateX(-50%);align-items:center;max-width:min(760px,94vw)}
-.topline{display:flex;align-items:center;gap:9px}
-
 .card{background:var(--surface);-webkit-backdrop-filter:var(--blur);backdrop-filter:var(--blur);
   border:1px solid var(--edge);border-radius:var(--r);box-shadow:0 8px 30px rgba(0,0,0,.5)}
 .lbl{font-size:9.5px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:var(--faint)}
 
 /* ---------- chrono + objectif ---------- */
-#clock{padding:9px 16px 8px;font-size:26px;font-weight:800;
+#clock{position:fixed;top:18px;right:18px;padding:9px 16px 8px;font-size:26px;font-weight:800;
   letter-spacing:-.01em;color:var(--txt);background:var(--surface);border:1px solid var(--edge);
   border-radius:var(--r-sm);-webkit-backdrop-filter:var(--blur);backdrop-filter:var(--blur);
   transition:color .4s,border-color .4s,box-shadow .4s}
 #clock.warn{color:var(--bad);border-color:rgba(224,85,63,.45);box-shadow:0 0 26px rgba(224,85,63,.28)}
-#where{font-size:9.5px;font-weight:700;letter-spacing:.13em;
+#where{position:fixed;top:66px;right:18px;font-size:9.5px;font-weight:700;letter-spacing:.13em;
   text-transform:uppercase;color:var(--faint);text-align:right}
-#goal{width:100%;padding:13px 15px;text-align:left;
+#goal{position:fixed;top:92px;right:18px;width:min(310px,46vw);padding:13px 15px;text-align:left;
   font-size:14px;font-weight:500;line-height:1.42;color:var(--txt);
   background:var(--surface);-webkit-backdrop-filter:var(--blur);backdrop-filter:var(--blur);
   border:1px solid var(--edge);border-left:2px solid var(--gold);border-radius:var(--r-sm);
@@ -70,13 +54,13 @@ body.playing .hud{opacity:1}
   text-transform:uppercase;color:var(--gold-deep);margin-bottom:5px}
 
 /* ---------- poches + sceaux ---------- */
-#bag{display:flex;gap:8px}
+#bag{position:fixed;top:18px;left:18px;display:flex;gap:8px}
 .item{position:relative;width:46px;height:46px;display:grid;place-items:center;font-size:21px;
   color:var(--gold-2);background:var(--surface);border:1px solid var(--edge);border-radius:var(--r-sm);
   -webkit-backdrop-filter:var(--blur);backdrop-filter:var(--blur);cursor:pointer;
   transition:transform .18s cubic-bezier(.2,.9,.3,1),border-color .18s,box-shadow .18s}
 .item:hover{transform:translateY(-3px);border-color:var(--edge-2);box-shadow:0 10px 24px rgba(0,0,0,.55)}
-.item .t{position:absolute;transform:translateX(-50%) translateY(-4px);
+.item .t{position:absolute;top:54px;left:50%;transform:translateX(-50%) translateY(-4px);
   padding:5px 9px;white-space:nowrap;font-size:10.5px;font-weight:600;color:var(--txt);
   background:var(--surface-2);border:1px solid var(--edge);border-radius:8px;
   opacity:0;pointer-events:none;transition:.18s}
@@ -84,7 +68,7 @@ body.playing .hud{opacity:1}
 .item.fresh{animation:pop .9s cubic-bezier(.2,.9,.3,1)}
 @keyframes pop{0%{transform:scale(1.5);box-shadow:0 0 44px rgba(232,184,96,.75);border-color:var(--gold)}
   100%{transform:scale(1)}}
-#seals{display:flex;gap:7px}
+#seals{position:fixed;top:76px;left:18px;display:flex;gap:7px}
 .sl{width:32px;height:32px;display:grid;place-items:center;font-family:var(--disp);font-size:16px;
   color:#3a332a;background:rgba(24,20,15,.45);border:1px solid var(--edge);border-radius:9px;
   transition:.7s cubic-bezier(.2,.9,.3,1)}
@@ -94,7 +78,7 @@ body.playing .hud{opacity:1}
 /* ---------- vitalité + munitions ---------- */
 #vit,#ammo{display:none}
 #vit.on,#ammo.on{display:block}
-#vit{width:196px;padding:11px 13px 12px;
+#vit{position:fixed;left:18px;bottom:18px;width:196px;padding:11px 13px 12px;
   background:var(--surface);-webkit-backdrop-filter:var(--blur);backdrop-filter:var(--blur);
   border:1px solid var(--edge);border-radius:var(--r-sm);box-shadow:0 8px 30px rgba(0,0,0,.5)}
 #vitk{font-size:9px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;
@@ -103,7 +87,7 @@ body.playing .hud{opacity:1}
 #vitfill{height:100%;width:100%;border-radius:99px;
   background:linear-gradient(90deg,#e0553f 0%,#e8b860 55%,#ffd88f 100%);
   transition:width .35s cubic-bezier(.2,.9,.3,1)}
-#ammo{padding:10px 15px 12px;text-align:right;
+#ammo{position:fixed;right:18px;bottom:18px;padding:10px 15px 12px;text-align:right;
   background:var(--surface);-webkit-backdrop-filter:var(--blur);backdrop-filter:var(--blur);
   border:1px solid var(--edge);border-radius:var(--r-sm);box-shadow:0 8px 30px rgba(0,0,0,.5)}
 #ammo b{font-size:30px;font-weight:800;color:var(--txt);letter-spacing:-.02em;line-height:1}
@@ -111,13 +95,11 @@ body.playing .hud{opacity:1}
 #pips{display:flex;gap:3px;justify-content:flex-end;margin-top:8px}
 #pips span{width:5px;height:11px;border-radius:2px;background:var(--gold);transition:.2s}
 #pips span.out{background:rgba(255,255,255,.13)}
-#ammo.low{border-color:rgba(224,85,63,.55);box-shadow:0 0 26px rgba(224,85,63,.25)}
-#ammo.low b{color:var(--bad)}
 #ammok{font-size:9px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;
   color:var(--faint);margin-top:7px}
 
 /* ---------- viseur ---------- */
-#dot{width:6px;height:6px;margin:-3px 0 0 -3px;border-radius:50%;
+#dot{position:fixed;left:50%;top:50%;width:6px;height:6px;margin:-3px 0 0 -3px;border-radius:50%;
   border:1.5px solid rgba(255,255,255,.6);transition:.14s cubic-bezier(.2,.9,.3,1)}
 #dot.hot{width:14px;height:14px;margin:-7px 0 0 -7px;border-color:var(--gold-2);
   box-shadow:0 0 16px rgba(255,216,143,.6)}
@@ -131,15 +113,16 @@ body.playing .hud{opacity:1}
 #tip.on{opacity:1;transform:translateX(-50%) translateY(0)}
 
 /* ---------- notification ---------- */
-#say{pointer-events:none;transform:translateY(10px);max-width:min(620px,88vw);padding:15px 22px;font-family:var(--story);font-size:19px;
+#say{position:fixed;left:50%;bottom:96px;transform:translateX(-50%) translateY(10px);
+  max-width:min(620px,88vw);padding:15px 22px;font-family:var(--story);font-size:19px;
   line-height:1.45;text-align:center;color:var(--txt);
   background:var(--surface-2);-webkit-backdrop-filter:var(--blur);backdrop-filter:var(--blur);
   border:1px solid var(--edge);border-radius:var(--r);box-shadow:0 14px 40px rgba(0,0,0,.6);
   opacity:0;transition:.4s cubic-bezier(.2,.9,.3,1)}
-#say.on{opacity:1;transform:translateY(0)}
+#say.on{opacity:1;transform:translateX(-50%) translateY(0)}
 
 /* ---------- barre de commandes ---------- */
-#bar{display:flex;gap:6px;
+#bar{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);display:flex;gap:6px;
   align-items:center}
 #bar span{padding:7px 12px;font-size:10.5px;font-weight:600;color:var(--dim);
   background:var(--surface);border:1px solid var(--edge);border-radius:99px;
@@ -153,7 +136,7 @@ body.playing .hud{opacity:1}
 #bar span{transition:.5s}
 
 /* ---------- panneaux ---------- */
-.panel{inset:0;z-index:24;background:rgba(6,5,4,.72);
+.panel{position:fixed;inset:0;z-index:24;background:rgba(6,5,4,.72);
   -webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);
   display:grid;place-items:center;padding:5vh 5vw;animation:fadein .22s}
 @keyframes fadein{from{opacity:0}to{opacity:1}}
@@ -188,18 +171,8 @@ body.playing .hud{opacity:1}
 .close:hover{color:var(--txt);border-color:var(--edge-2);background:rgba(255,255,255,.04)}
 
 /* ---------- voiles ---------- */
-.veil{inset:0;z-index:30;display:grid;place-items:center;padding:5vh 5vw;
-  text-align:center;background:radial-gradient(ellipse 80% 70% at 50% 42%,#1a1409,#060504 76%);
-  overflow-y:auto}
-/* L’accueil laisse voir le tombeau : la caméra y dérive lentement derrière. */
-#intro{background:linear-gradient(180deg,rgba(6,5,3,.55),rgba(6,5,3,.86));
-  -webkit-backdrop-filter:blur(3px) saturate(1.1);backdrop-filter:blur(3px) saturate(1.1)}
-#intro > div{max-width:640px;width:100%;padding:34px 36px 32px;
-  background:linear-gradient(168deg,rgba(30,25,17,.90),rgba(14,12,8,.94));
-  border:1px solid var(--edge-2);border-radius:22px;
-  box-shadow:0 40px 110px rgba(0,0,0,.75);
-  -webkit-backdrop-filter:var(--blur);backdrop-filter:var(--blur)}
-.paper{max-height:86vh;overflow-y:auto}
+.veil{position:fixed;inset:0;z-index:30;display:grid;place-items:center;padding:6vh 6vw;
+  text-align:center;background:radial-gradient(ellipse 80% 70% at 50% 42%,#1a1409,#060504 76%)}
 .veil h1{font-family:var(--disp);font-weight:600;font-size:clamp(2.2rem,6.5vw,4rem);margin:0 0 18px;
   letter-spacing:.02em;line-height:1.06}
 .veil .kicker{display:inline-block;padding:6px 14px;margin-bottom:20px;font-size:9.5px;font-weight:700;
@@ -228,18 +201,18 @@ body.playing .hud{opacity:1}
   color:var(--faint);margin-top:8px}
 #fail{max-width:40em;color:var(--dim);font-size:13.5px;line-height:1.8}
 
-#nbox{width:100%;display:none;max-width:min(300px,44vw);padding:9px 13px;
+#nbox{position:fixed;top:198px;left:18px;display:none;max-width:min(300px,44vw);padding:9px 13px;
   font-size:11.5px;font-weight:600;line-height:1.4;color:var(--txt);background:var(--surface);
   -webkit-backdrop-filter:var(--blur);backdrop-filter:var(--blur);
   border:1px solid var(--edge);border-radius:var(--r-sm)}
 #nbox.on{display:block}
-#micind{display:none;padding:9px 15px;font:inherit;
+#micind{position:fixed;top:158px;right:18px;display:none;padding:9px 15px;font:inherit;
   font-size:11px;font-weight:700;color:var(--bad);background:var(--surface);
   -webkit-backdrop-filter:var(--blur);backdrop-filter:var(--blur);
   border:1px solid rgba(224,85,63,.4);border-radius:99px;cursor:pointer;transition:.2s}
 #micind.on{display:block}
 #micind.live{color:var(--good);border-color:rgba(143,201,138,.45)}
-#vubox{display:none;width:168px;padding:10px 13px;
+#vubox{position:fixed;top:200px;right:18px;display:none;width:168px;padding:10px 13px;
   background:var(--surface);-webkit-backdrop-filter:var(--blur);backdrop-filter:var(--blur);
   border:1px solid var(--edge);border-radius:var(--r-sm)}
 #vubox.on{display:block}
@@ -253,17 +226,17 @@ body.playing .hud{opacity:1}
 #micind:hover{transform:translateY(-2px)}
 #nbox b{display:block;font-size:8.5px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;
   color:var(--gold-deep);margin-bottom:3px}
-#gcode{display:none;align-items:center;gap:9px;padding:8px 14px;
+#gcode{position:fixed;top:118px;left:18px;display:none;align-items:center;gap:9px;padding:8px 14px;
   font-size:12px;font-weight:800;letter-spacing:.22em;color:var(--gold-2);
   background:rgba(232,184,96,.10);-webkit-backdrop-filter:var(--blur);backdrop-filter:var(--blur);
   border:1px solid rgba(232,184,96,.34);border-radius:99px}
 #gcode.on{display:flex}
 #gcode small{font-size:9px;font-weight:700;letter-spacing:.14em;color:var(--gold-deep);
   text-transform:uppercase}
-#fps{position:static;padding:8px 12px;font-size:11px;font-weight:700;
+#fps{position:fixed;top:18px;right:150px;padding:8px 12px;font-size:11px;font-weight:700;
   color:var(--faint);background:var(--surface);-webkit-backdrop-filter:var(--blur);
   backdrop-filter:var(--blur);border:1px solid var(--edge);border-radius:99px}
-#coop{display:none;align-items:center;gap:8px;padding:8px 13px;
+#coop{position:fixed;top:158px;left:18px;display:none;align-items:center;gap:8px;padding:8px 13px;
   font-size:11px;font-weight:600;color:var(--txt);background:var(--surface);
   -webkit-backdrop-filter:var(--blur);backdrop-filter:var(--blur);
   border:1px solid var(--edge);border-radius:99px}
@@ -271,9 +244,9 @@ body.playing .hud{opacity:1}
 #coop .dotlive{width:7px;height:7px;border-radius:50%;background:var(--good);
   box-shadow:0 0 10px var(--good);animation:beat 2s ease-in-out infinite}
 @keyframes beat{0%,100%{opacity:.5}50%{opacity:1}}
-#chat{display:flex;flex-direction:column;gap:6px;width:min(330px,42vw);display:flex;
+#chat{position:fixed;left:18px;bottom:104px;width:min(330px,44vw);display:flex;
   flex-direction:column;gap:6px}
-#log{display:flex;flex-direction:column;gap:5px;max-height:150px;overflow:hidden;justify-content:flex-end}
+#log{display:flex;flex-direction:column;gap:5px;max-height:170px;overflow:hidden;justify-content:flex-end}
 #log div{padding:7px 11px;font-size:12.5px;line-height:1.4;color:var(--txt);
   background:var(--surface);-webkit-backdrop-filter:var(--blur);backdrop-filter:var(--blur);
   border:1px solid var(--edge);border-radius:12px;border-bottom-left-radius:4px;
@@ -307,7 +280,7 @@ body.playing .hud{opacity:1}
 #lstat{font-size:12px;color:var(--faint);line-height:1.5}
 
 /* ---------- effets plein écran ---------- */
-#hurt{inset:0;z-index:19;pointer-events:none;opacity:0;
+#hurt{position:fixed;inset:0;z-index:19;pointer-events:none;opacity:0;
   box-shadow:inset 0 0 190px rgba(180,26,18,.9);transition:opacity .5s}
 #hurt.on{opacity:1;transition:opacity .05s}
 #vig{position:fixed;inset:0;z-index:8;pointer-events:none;
@@ -319,21 +292,11 @@ body.playing .hud{opacity:1}
   transition:opacity 1.1s}
 #flash.on{opacity:1;transition:opacity .09s}
 
-/* ---------- petits écrans : on resserre les zones, rien de plus ---------- */
-@media (max-width:900px){
-  #bar span{display:none}
-}
 @media (max-width:720px){
-  .zone{gap:8px;max-width:min(260px,46vw)}
-  .tl,.tr{top:10px} .bl,.br,.bc{bottom:10px}
-  .tl,.bl{left:10px} .tr,.br{right:10px}
-  #clock{font-size:20px;padding:7px 12px 6px}
-  #goal{font-size:12.5px;padding:10px 12px}
-  #vit{width:132px} #chat{width:min(240px,46vw)}
-  #vubox{width:132px}
-  #ammo b{font-size:24px}
-  .paper{padding:22px 20px}
-  #intro > div{padding:24px 20px}
+  #clock{font-size:20px;top:12px;right:12px}#where,#goal{right:12px}
+  #goal{width:min(240px,52vw);font-size:12.5px;top:80px}
+  #bag,#seals{left:12px}#vit{width:150px}
+  #bar span{display:none}
 }
 </style>
 </head>
@@ -343,50 +306,30 @@ body.playing .hud{opacity:1}
 <div id="flash"></div>
 <div id="hurt"></div>
 <div class="hud">
-
-  <div class="zone tl">
-    <div id="bag"></div>
-    <div id="seals"></div>
-    <div id="gcode"><small>Code</small><span id="gcodev"></span></div>
-    <div id="coop"><span class="dotlive"></span><span id="coopn">1 explorateur</span></div>
-    <div id="nbox"><b>Liaison</b><span id="nstat"></span></div>
+  <div id="bag"></div><div id="seals"></div>
+  <div id="fps">— ips</div>
+  <div id="clock">20:00</div><div id="where">Antichambre</div>
+  <div id="goal"></div>
+  <div id="dot"></div><div id="tip"></div><div id="say"></div>
+  <div id="gcode"><small>Code</small><span id="gcodev"></span></div>
+  <div id="nbox"><b>Liaison</b><span id="nstat"></span></div>
+  <button id="micind" type="button"></button>
+  <div id="vubox">
+    <div class="vurow"><span>Moi</span><div class="vutrack"><i id="vuMe"></i></div></div>
+    <div class="vurow"><span>Lui</span><div class="vutrack"><i id="vuThem"></i></div></div>
   </div>
-
-  <div class="zone tr">
-    <div class="topline"><span id="fps">— ips</span><div id="clock">20:00</div></div>
-    <div id="where">Antichambre</div>
-    <div id="goal"></div>
-    <button id="micind" type="button"></button>
-    <div id="vubox">
-      <div class="vurow"><span>Moi</span><div class="vutrack"><i id="vuMe"></i></div></div>
-      <div class="vurow"><span>Lui</span><div class="vutrack"><i id="vuThem"></i></div></div>
-    </div>
+  <div id="coop"><span class="dotlive"></span><span id="coopn">1 explorateur</span></div>
+  <div id="chat"><div id="log"></div><input id="msg" maxlength="120" autocomplete="off"
+    placeholder="Message à votre coéquipier — Entrée pour envoyer"></div>
+  <div id="vit"><div id="vitbar"><div id="vitfill"></div></div><div id="vitk">Souffle vital</div></div>
+  <div id="ammo"><b id="mag">12</b><i> / 12</i><div id="pips"></div><div id="ammok">Chargeur</div></div>
+  <div id="bar">
+    <span>ZQSD · marcher</span><span>Souris · regarder</span><span>E · examiner</span><span>Maj · courir</span><span>T · écrire</span><span>M · micro</span><span>Clic · tirer</span>
+    <button type="button" id="bHint">I · Indice</button>
+    <button type="button" id="bReset">R · Recommencer</button>
   </div>
-
-  <div class="zone bl">
-    <div id="chat"><div id="log"></div><input id="msg" maxlength="120" autocomplete="off"
-      placeholder="Message — Entrée pour envoyer"></div>
-    <div id="vit"><div id="vitk">Souffle vital</div><div id="vitbar"><div id="vitfill"></div></div></div>
-  </div>
-
-  <div class="zone br">
-    <div id="ammo"><b id="mag">12</b><i> / <span id="res">48</span></i>
-      <div id="pips"></div><div id="ammok">Chargeur · réserve</div></div>
-  </div>
-
-  <div class="zone bc">
-    <div id="say"></div>
-    <div id="bar">
-      <span>ZQSD · marcher</span><span>Maj · courir</span><span>E · examiner</span>
-      <span>Clic · tirer</span><span>F · recharger</span><span>T · écrire</span><span>M · micro</span>
-      <button type="button" id="bHint">I · Indice</button>
-      <button type="button" id="bReset">R · Recommencer</button>
-    </div>
-  </div>
-
-  <div id="dot"></div>
-  <div id="tip"></div>
 </div>
+
 <div class="veil" id="intro">
   <div>
     <div class="kicker">Quatre salles · Trois sceaux · Vingt minutes</div>
@@ -420,21 +363,6 @@ body.playing .hud{opacity:1}
 (function(){
 /* ─────────── 01-boot.js ─────────── */
 var $=function(s){ return document.querySelector(s); };
-/* Une exception levée pendant le jeu ne doit plus être invisible :
-   le banc d'essai ne couvre que le chargement. */
-function oops(where,e){
-  var box=document.getElementById("errbar");
-  if(!box){
-    box=document.createElement("div"); box.id="errbar";
-    box.style.cssText="position:fixed;left:0;right:0;bottom:0;z-index:999;background:#8a1f16;"+
-      "color:#fff;font:12px/1.5 ui-monospace,monospace;padding:9px 14px;white-space:pre-wrap";
-    document.body.appendChild(box);
-  }
-  box.textContent="Erreur ["+where+"] : "+((e&&e.message)||e)+
-    (e&&e.lineno?"  ligne "+e.lineno:"");
-}
-window.addEventListener("error",function(ev){ oops("exécution",ev); });
-window.addEventListener("unhandledrejection",function(ev){ oops("promesse",ev.reason); });
 function halt(t,c){ $("#intro").innerHTML='<div style="max-width:44em"><div class="kicker">La dalle ne bouge pas</div><h1>'+t+'</h1><div id="fail">'+c+'</div></div>'; }
 if(!window.THREE){ halt("Moteur 3D absent","<p>three.js n’a pas pu être chargé. Vérifiez le réseau et rechargez.</p>"); return; }
 
@@ -452,15 +380,6 @@ renderer.toneMapping=THREE.ACESFilmicToneMapping; renderer.toneMappingExposure=1
 renderer.shadowMap.enabled=true; renderer.shadowMap.type=THREE.PCFSoftShadowMap;
 renderer.shadowMap.autoUpdate=false;   // rafraîchi une image sur trois depuis la boucle
 document.body.appendChild(renderer.domElement);
-/* Un contexte WebGL perdu fige la dernière image sans lever d'erreur :
-   c'est indiscernable d'un plantage si on ne l'écoute pas. */
-renderer.domElement.addEventListener("webglcontextlost",function(e){
-  e.preventDefault();
-  oops("GPU","contexte WebGL perdu — le pilote graphique a redémarré. Rechargez la page.");
-},false);
-renderer.domElement.addEventListener("webglcontextrestored",function(){
-  oops("GPU","contexte rétabli — rechargez la page (F5).");
-},false);
 
 /* ---------- textures peintes ---------- */
 // carte de relief dérivée d'une carte de hauteur peinte : le pixel devient une normale
@@ -594,13 +513,9 @@ camera.position.set(wx(14),EYE,wz(25));
 })();
 scene.add(new THREE.AmbientLight(0x3a3020, 0.55));
 function torch(x,z,i,d){ var l=new THREE.PointLight(0xffa94d, i||4, d||13, 2); l.position.set(x,2.9,z); scene.add(l); return l; }
-/* Une lampe par salle, pas davantage. Chaque lumière allonge le shader de
-   TOUS les matériaux : neuf torches multipliaient le temps de compilation.
-   La torche portée par le joueur fait l'essentiel de l'éclairage. */
-var lampsA=[torch(wx(14),wz(24),6.5,24)];   // antichambre (faiblit avec le chrono)
-torch(wx(14),wz(15),7.5,30);                // grande salle
-torch(wx(14),wz(5), 5.0,24);                // chambre nord
-torch(wx(24),wz(15),4.5,22);                // chambre est
+var lampsA=[torch(wx(11),wz(23)),torch(wx(17),wz(26)),torch(wx(14),wz(21),3.5,12)];
+torch(wx(14),wz(15),7,26); torch(wx(11),wz(12),3,12); torch(wx(17),wz(18),3,12);
+torch(wx(14),wz(4),4.5,20); torch(wx(24),wz(15),4,18); torch(wx(3),wz(12),2.2,11);
 
 /* ─────────── 03-utils.js ─────────── */
 /* ============================================================
@@ -1296,10 +1211,6 @@ var texWrap=paint(256,256,function(g,w,h){
 });
 var matWrap=new THREE.MeshStandardMaterial({map:texWrap, roughness:.93, metalness:.02,
   normalMap:nWrap, normalScale:new THREE.Vector2(1.15,1.15), envMapIntensity:.5});
-var jawMat=new THREE.MeshStandardMaterial({color:0x120c05,roughness:1});
-var hitMat=new THREE.MeshBasicMaterial({visible:false});
-var ragMat=new THREE.MeshStandardMaterial({map:texWrap,roughness:1,side:THREE.DoubleSide,
-  transparent:true,opacity:.93,envMapIntensity:.4});   // partagé : 7 par gardien auparavant
 var mummies=[], hits=[];
 var GEO={};
 function gCyl(r1,r2,l,sg){ var k="c"+r1+r2+l+sg; return GEO[k]||(GEO[k]=new THREE.CylinderGeometry(r1,r2,l,sg)); }
@@ -1324,7 +1235,8 @@ function Mummy(x,z){
   // crâne bandé, mâchoire noire entrouverte
   var head=new THREE.Mesh(gSph(0.165,12,10), matWrap);
   head.position.set(0,1.63,0.01); head.scale.set(.92,1.10,1); head.castShadow=true; g.add(head);
-  var jaw=new THREE.Mesh(gSph(0.10,9,7), jawMat);
+  var jaw=new THREE.Mesh(gSph(0.10,9,7),
+    new THREE.MeshStandardMaterial({color:0x120c05,roughness:1}));
   jaw.position.set(0,1.50,0.075); jaw.scale.set(.9,.55,.8); g.add(jaw);
   var neck=new THREE.Mesh(gCyl(0.075,0.095,0.14,9), matWrap);
   neck.position.y=1.47; g.add(neck);
@@ -1342,12 +1254,14 @@ function Mummy(x,z){
   // bandelettes défaites qui pendent et flottent
   var rags=[];
   for(var q=0;q<7;q++){
-    var rg=new THREE.Mesh(gPln(0.055,0.36), ragMat);
+    var rg=new THREE.Mesh(gPln(0.055,0.36),
+      new THREE.MeshStandardMaterial({map:texWrap,roughness:1,side:THREE.DoubleSide,
+        transparent:true,opacity:.93}));
     var an=Math.random()*6.2832;
     rg.position.set(Math.cos(an)*0.19, 0.80+Math.random()*0.60, Math.sin(an)*0.19);
     rg.rotation.y=an; rg.scale.y=0.8+Math.random()*0.7; g.add(rg); rags.push(rg);
   }
-  var hit=new THREE.Mesh(gBox(0.78,1.95,0.78), hitMat);
+  var hit=new THREE.Mesh(gBox(0.78,1.95,0.78), new THREE.MeshBasicMaterial({visible:false}));
   hit.position.y=0.97; g.add(hit); hit.userData.mummy=this;
   this.g=g; this.hit=hit; this.la=la; this.ra=ra; this.ll=ll; this.rl=rl; this.rags=rags;
   this.hp=3; this.dead=false; this.t=Math.random()*6; this.cool=0; this.fall=0; this.stagger=0;
@@ -1465,58 +1379,12 @@ function dust(at,n){
 })();
 
 /* ---------- tir ---------- */
-var MAG=12, mag=MAG, res=48, RESMAX=120, reloading=0, shootRay=new THREE.Raycaster();
-/* --- caisses de cartouches : sans réserve finie, tirer n'a aucun coût --- */
-var crates=[];
-var crateWood=new THREE.MeshStandardMaterial({color:0x4a3a22,roughness:.9,envMapIntensity:.3});
-var crateBrass=new THREE.MeshStandardMaterial({color:0xc9a227,roughness:.3,metalness:1,
-  emissive:0xc9a227,emissiveIntensity:.55,envMapIntensity:1.4});   // brille sans lampe
-var crateBoxG=new THREE.BoxGeometry(0.42,0.26,0.30);
-var crateBandG=new THREE.BoxGeometry(0.44,0.05,0.32);
-var crateRndG=new THREE.CylinderGeometry(0.021,0.021,0.09,8);
-function ammoCrate(x,z){
-  var g=new THREE.Group(); g.position.set(x,0,z); scene.add(g);
-  var w=new THREE.Mesh(crateBoxG, crateWood);
-  w.position.y=0.13; w.castShadow=true; g.add(w);
-  var band=new THREE.Mesh(crateBandG, crateBrass);
-  band.position.y=0.20; g.add(band);
-  for(var i=0;i<4;i++){                       // cartouches qui dépassent
-    var c=new THREE.Mesh(crateRndG, crateBrass);
-    c.position.set(-0.10+i*0.068,0.29,0); g.add(c);
-  }
-  var o={g:g,l:{intensity:0},x:x,z:z,ready:true,t:0};   // plus de lampe : l’émissif suffit
-  crates.push(o); return o;
-}
-function stepCrates(dt){
-  for(var i=0;i<crates.length;i++){
-    var c=crates[i];
-    c.g.rotation.y+=dt*0.5;
-    if(!c.ready){
-      c.t-=dt;
-      if(c.t<=0){ c.ready=true; c.g.visible=true; c.l.intensity=1.1; }
-      continue;
-    }
-    c.g.position.y=Math.sin(performance.now()*0.0018+i)*0.03;
-    if(started && res<RESMAX &&
-       Math.hypot(camera.position.x-c.x,camera.position.z-c.z)<1.5){
-      res=Math.min(RESMAX,res+18); updAmmo(); ping(760,.18,.05);
-      say("Dix-huit cartouches récupérées.");
-      c.ready=false; c.t=40; c.g.visible=false; c.l.intensity=0;   // repousse en 40 s
-    }
-  }
-}
+var MAG=12, mag=MAG, reloading=0, shootRay=new THREE.Raycaster();
 function updAmmo(){
   $("#mag").textContent=reloading>0?"—":mag;
-  var r=document.getElementById("res"); if(r) r.textContent=res;
-  var box=document.getElementById("ammo");
-  if(box) box.classList.toggle("low", mag+res<=8);
   var p=$("#pips"), h="";
   for(var i=0;i<MAG;i++) h+='<span class="'+(i<mag?"":"out")+'"></span>';
   p.innerHTML=h;
-}
-function reload(){
-  if(reloading>0||mag>=MAG||res<=0) return;
-  reloading=1.4; updAmmo();
 }
 function hitMark(){
   var d=$("#dot"); d.classList.add("mark");
@@ -1524,10 +1392,7 @@ function hitMark(){
 }
 function shoot(){
   if(!hasGun||over||panel||reloading>0) return;
-  if(mag<=0){
-    if(res<=0){ ping(140,.10,.04); say("Plus une seule cartouche."); return; }
-    reload(); ping(180,.12,.03); return;
-  }
+  if(mag<=0){ reloading=1.4; updAmmo(); ping(180,.12,.03); return; }
   mag--; updAmmo(); kick=1; slideBack=1; bang(); ejectShell();
   netSend({k:"shot"});
   muzzle.intensity=7; gun.userData.flash.material.opacity=0.95;
@@ -1536,7 +1401,7 @@ function shoot(){
   var h=shootRay.intersectObjects(targets,false);
   if(h.length && h[0].object.userData.mummy) h[0].object.userData.mummy.hurt();
   else if(h.length) dust(h[0].point,7);
-  if(mag<=0) reload();
+  if(mag<=0) reloading=1.4;
 }
 var lastHit=0;
 function damage(n){
@@ -1609,14 +1474,6 @@ function groan(at){
   ping(70+Math.random()*26,.85,g);
 }
 
-/* ---------- les caisses, une fois tout déclaré ---------- */
-ammoCrate(wx(10)+0.6, wz(26));
-ammoCrate(wx(18)-0.4, wz(22));
-ammoCrate(wx(11),      wz(13));
-ammoCrate(wx(18),      wz(18));
-ammoCrate(wx(14)+1.6,  wz(6));
-ammoCrate(wx(24),      wz(18));
-
 /* ─────────── 11-net.js ─────────── */
 /* ============================================================
    JEU À DEUX  —  capacité "room" : tous ceux qui ont la page ouverte
@@ -1661,7 +1518,7 @@ function makeAvatar(name,col){
   belt.position.y=0.90; g.add(belt);
   var buckle=new THREE.Mesh(new THREE.BoxGeometry(0.075,0.055,0.02), metal);
   buckle.position.set(0,0.90,0.17); g.add(buckle);
-  var shoul=new THREE.Mesh(new THREE.CapsuleGeometry?new THREE.CylinderGeometry(0.075,0.075,0.44,10):new THREE.CylinderGeometry(0.075,0.075,0.44,10), coat);
+  var shoul=new THREE.Mesh(new THREE.CylinderGeometry(0.075,0.075,0.44,10), coat);
   shoul.rotation.z=Math.PI/2; shoul.position.y=1.40; shoul.castShadow=true; g.add(shoul);
   // bras
   var la=seg(g,0.32,0.070,0.058,coat,-0.225,1.38,0), laf=seg(la,0.30,0.056,0.048,coat,0,-0.32,0);
@@ -2022,7 +1879,6 @@ window.addEventListener("keydown",function(e){
   if(e.code==="KeyI") hint();
   if(e.code==="KeyT") openChat();
   if(e.code==="KeyM" && typeof toggleMic==="function") toggleMic();
-  if(e.code==="KeyF") reload();
   if(e.code==="KeyR") askReset();
   if(["ArrowUp","ArrowDown","ArrowLeft","ArrowRight","Space"].indexOf(e.code)>=0) e.preventDefault();
 });
@@ -2141,15 +1997,6 @@ function chrono(dt){
 }
 
 /* ---------- boucle ---------- */
-/* Plan d’ouverture : tant qu’on n’a pas commencé, la caméra tourne
-   lentement autour de l’antichambre derrière le panneau d’accueil. */
-var cineT=Math.PI*0.35;
-function cinematic(dt){
-  cineT+=dt*0.052;
-  var r=5.6;
-  camera.position.set(AX+Math.cos(cineT)*r, 1.78+Math.sin(cineT*1.6)*0.14, AZ+Math.sin(cineT)*r);
-  yaw=Math.PI/2-cineT; pitch=-0.05+Math.sin(cineT*0.8)*0.03;
-}
 var clk=new THREE.Clock();
 var elWhere=$("#where"), elGoal=$("#goal"), elTip=$("#tip"),
     elDot=$("#dot"), elClock=$("#clock"), elFps=$("#fps");
@@ -2157,8 +2004,7 @@ var fpsAcc=0, fpsN=0;
 function loop(){
   requestAnimationFrame(loop);
   var dt=Math.min(clk.getDelta(),0.05);
-  if(!started) cinematic(dt); else walk(dt);
-  camera.rotation.set(pitch,yaw,0,"YXZ");
+  walk(dt); camera.rotation.set(pitch,yaw,0,"YXZ");
   if((fr++ & 3)===0 && started && !panel) scan();
 
   var sc=seals[0]?1:anaScore();
@@ -2208,10 +2054,7 @@ function loop(){
   stepShells(dt); footsteps(dt); ambientGroans(dt);
   if(typeof stepMate==='function') stepMate(dt);
   if(reloading>0){ reloading-=dt;
-    if(reloading<=0){ reloading=0;
-      var need=MAG-mag, take=Math.min(need,res); mag+=take; res-=take;
-      updAmmo(); ping(520,.09,.04); } }
-  stepCrates(dt);
+    if(reloading<=0){ reloading=0; mag=MAG; updAmmo(); ping(520,.09,.04); } }
   viewmodel(dt,moving);
 
   elWhere.textContent=RN[room()];
@@ -2222,10 +2065,8 @@ function loop(){
   if(fpsAcc>=0.5){ elFps.textContent=Math.round(fpsN/fpsAcc)+" ips"; fpsAcc=0; fpsN=0; }
   renderer.clear();
   renderer.render(scene,camera);
-  if(started){                     // pas de mains sur l'écran d'accueil
-    renderer.clearDepth();         // et elles ne traversent aucun mur
-    renderer.render(vmScene,vmCam);
-  }
+  renderer.clearDepth();          // les mains ne peuvent traverser aucun mur
+  renderer.render(vmScene,vmCam);
 }
 loop();
 addEventListener("resize",function(){
@@ -2234,54 +2075,17 @@ addEventListener("resize",function(){
   renderer.setSize(innerWidth,innerHeight);
 });
 
-/* Le départ est étalé sur plusieurs images : chaque étape rend la main au
-   navigateur, donc aucune ne peut figer l'écran, et l'étape en cours
-   s'affiche — si ça s'arrête, on sait exactement où. */
-function stage(txt){
-  var e=document.getElementById("boot");
-  if(!e){
-    e=document.createElement("div"); e.id="boot";
-    e.style.cssText="position:fixed;left:50%;bottom:64px;transform:translateX(-50%);z-index:60;"+
-      "padding:8px 16px;border-radius:99px;background:rgba(20,16,10,.86);color:#e8b860;"+
-      "font:600 11px/1 ui-monospace,monospace;letter-spacing:.14em;pointer-events:none";
-    document.body.appendChild(e);
-  }
-  if(txt===null){ e.remove(); return; }
-  e.textContent=txt;
-}
 function startGame(){
   if(started) return;
-  started=true;
-  var steps=[
-    ["interface", function(){
-      document.body.classList.add("playing");
-      var iv=document.getElementById("intro"); if(iv) iv.remove();
-    }],
-    ["caméra", function(){
-      camera.position.set(wx(14),EYE,wz(25)); yaw=0; pitch=0; clk.getDelta();
-    }],
-    ["armement", function(){ hasGun=true; updAmmo(); }],
-    ["gardiens", function(){
-      new Mummy(wx(11),   wz(22.5));
-      new Mummy(wx(18),   wz(27.0));
-      new Mummy(wx(11.5), wz(27.5));
-    }],
-    ["son", function(){ ping(440,.3,.04); ambience(); groan(camera.position); }],
-    ["pointeur", function(){ grab(); }],
-    ["prêt", function(){
-      setTimeout(function(){ $("#bar").classList.add("faded"); },12000);
-      say("La dalle est retombée. Vingt minutes — et vous n’êtes pas seul ici.");
-      setTimeout(function(){ stage(null); },900);
-    }]
-  ];
-  var i=0;
-  (function next(){
-    if(i>=steps.length) return;
-    var st=steps[i++];
-    stage(st[0]+" …");
-    try{ st[1](); }catch(e){ oops(st[0],e); }
-    requestAnimationFrame(next);        // le navigateur respire entre chaque étape
-  })();
+  var iv=document.getElementById("intro"); if(iv) iv.remove();
+  started=true; clk.getDelta(); grab(); ping(440,.3,.04);
+  hasGun=true; updAmmo(); ambience();
+  setTimeout(function(){ $("#bar").classList.add("faded"); },12000);
+  new Mummy(wx(11),   wz(22.5));
+  new Mummy(wx(18),   wz(27.0));
+  new Mummy(wx(11.5), wz(27.5));
+  groan(camera.position);
+  say("La dalle est retombée. Vingt minutes — et vous n’êtes pas seul ici.");
 }
 $("#enter").addEventListener("click",startGame);
 

@@ -12,10 +12,6 @@ var texWrap=paint(256,256,function(g,w,h){
 });
 var matWrap=new THREE.MeshStandardMaterial({map:texWrap, roughness:.93, metalness:.02,
   normalMap:nWrap, normalScale:new THREE.Vector2(1.15,1.15), envMapIntensity:.5});
-var jawMat=new THREE.MeshStandardMaterial({color:0x120c05,roughness:1});
-var hitMat=new THREE.MeshBasicMaterial({visible:false});
-var ragMat=new THREE.MeshStandardMaterial({map:texWrap,roughness:1,side:THREE.DoubleSide,
-  transparent:true,opacity:.93,envMapIntensity:.4});   // partagé : 7 par gardien auparavant
 var mummies=[], hits=[];
 var GEO={};
 function gCyl(r1,r2,l,sg){ var k="c"+r1+r2+l+sg; return GEO[k]||(GEO[k]=new THREE.CylinderGeometry(r1,r2,l,sg)); }
@@ -40,7 +36,8 @@ function Mummy(x,z){
   // crâne bandé, mâchoire noire entrouverte
   var head=new THREE.Mesh(gSph(0.165,12,10), matWrap);
   head.position.set(0,1.63,0.01); head.scale.set(.92,1.10,1); head.castShadow=true; g.add(head);
-  var jaw=new THREE.Mesh(gSph(0.10,9,7), jawMat);
+  var jaw=new THREE.Mesh(gSph(0.10,9,7),
+    new THREE.MeshStandardMaterial({color:0x120c05,roughness:1}));
   jaw.position.set(0,1.50,0.075); jaw.scale.set(.9,.55,.8); g.add(jaw);
   var neck=new THREE.Mesh(gCyl(0.075,0.095,0.14,9), matWrap);
   neck.position.y=1.47; g.add(neck);
@@ -58,12 +55,14 @@ function Mummy(x,z){
   // bandelettes défaites qui pendent et flottent
   var rags=[];
   for(var q=0;q<7;q++){
-    var rg=new THREE.Mesh(gPln(0.055,0.36), ragMat);
+    var rg=new THREE.Mesh(gPln(0.055,0.36),
+      new THREE.MeshStandardMaterial({map:texWrap,roughness:1,side:THREE.DoubleSide,
+        transparent:true,opacity:.93}));
     var an=Math.random()*6.2832;
     rg.position.set(Math.cos(an)*0.19, 0.80+Math.random()*0.60, Math.sin(an)*0.19);
     rg.rotation.y=an; rg.scale.y=0.8+Math.random()*0.7; g.add(rg); rags.push(rg);
   }
-  var hit=new THREE.Mesh(gBox(0.78,1.95,0.78), hitMat);
+  var hit=new THREE.Mesh(gBox(0.78,1.95,0.78), new THREE.MeshBasicMaterial({visible:false}));
   hit.position.y=0.97; g.add(hit); hit.userData.mummy=this;
   this.g=g; this.hit=hit; this.la=la; this.ra=ra; this.ll=ll; this.rl=rl; this.rags=rags;
   this.hp=3; this.dead=false; this.t=Math.random()*6; this.cool=0; this.fall=0; this.stagger=0;
@@ -181,58 +180,12 @@ function dust(at,n){
 })();
 
 /* ---------- tir ---------- */
-var MAG=12, mag=MAG, res=48, RESMAX=120, reloading=0, shootRay=new THREE.Raycaster();
-/* --- caisses de cartouches : sans réserve finie, tirer n'a aucun coût --- */
-var crates=[];
-var crateWood=new THREE.MeshStandardMaterial({color:0x4a3a22,roughness:.9,envMapIntensity:.3});
-var crateBrass=new THREE.MeshStandardMaterial({color:0xc9a227,roughness:.3,metalness:1,
-  emissive:0xc9a227,emissiveIntensity:.55,envMapIntensity:1.4});   // brille sans lampe
-var crateBoxG=new THREE.BoxGeometry(0.42,0.26,0.30);
-var crateBandG=new THREE.BoxGeometry(0.44,0.05,0.32);
-var crateRndG=new THREE.CylinderGeometry(0.021,0.021,0.09,8);
-function ammoCrate(x,z){
-  var g=new THREE.Group(); g.position.set(x,0,z); scene.add(g);
-  var w=new THREE.Mesh(crateBoxG, crateWood);
-  w.position.y=0.13; w.castShadow=true; g.add(w);
-  var band=new THREE.Mesh(crateBandG, crateBrass);
-  band.position.y=0.20; g.add(band);
-  for(var i=0;i<4;i++){                       // cartouches qui dépassent
-    var c=new THREE.Mesh(crateRndG, crateBrass);
-    c.position.set(-0.10+i*0.068,0.29,0); g.add(c);
-  }
-  var o={g:g,l:{intensity:0},x:x,z:z,ready:true,t:0};   // plus de lampe : l’émissif suffit
-  crates.push(o); return o;
-}
-function stepCrates(dt){
-  for(var i=0;i<crates.length;i++){
-    var c=crates[i];
-    c.g.rotation.y+=dt*0.5;
-    if(!c.ready){
-      c.t-=dt;
-      if(c.t<=0){ c.ready=true; c.g.visible=true; c.l.intensity=1.1; }
-      continue;
-    }
-    c.g.position.y=Math.sin(performance.now()*0.0018+i)*0.03;
-    if(started && res<RESMAX &&
-       Math.hypot(camera.position.x-c.x,camera.position.z-c.z)<1.5){
-      res=Math.min(RESMAX,res+18); updAmmo(); ping(760,.18,.05);
-      say("Dix-huit cartouches récupérées.");
-      c.ready=false; c.t=40; c.g.visible=false; c.l.intensity=0;   // repousse en 40 s
-    }
-  }
-}
+var MAG=12, mag=MAG, reloading=0, shootRay=new THREE.Raycaster();
 function updAmmo(){
   $("#mag").textContent=reloading>0?"—":mag;
-  var r=document.getElementById("res"); if(r) r.textContent=res;
-  var box=document.getElementById("ammo");
-  if(box) box.classList.toggle("low", mag+res<=8);
   var p=$("#pips"), h="";
   for(var i=0;i<MAG;i++) h+='<span class="'+(i<mag?"":"out")+'"></span>';
   p.innerHTML=h;
-}
-function reload(){
-  if(reloading>0||mag>=MAG||res<=0) return;
-  reloading=1.4; updAmmo();
 }
 function hitMark(){
   var d=$("#dot"); d.classList.add("mark");
@@ -240,10 +193,7 @@ function hitMark(){
 }
 function shoot(){
   if(!hasGun||over||panel||reloading>0) return;
-  if(mag<=0){
-    if(res<=0){ ping(140,.10,.04); say("Plus une seule cartouche."); return; }
-    reload(); ping(180,.12,.03); return;
-  }
+  if(mag<=0){ reloading=1.4; updAmmo(); ping(180,.12,.03); return; }
   mag--; updAmmo(); kick=1; slideBack=1; bang(); ejectShell();
   netSend({k:"shot"});
   muzzle.intensity=7; gun.userData.flash.material.opacity=0.95;
@@ -252,7 +202,7 @@ function shoot(){
   var h=shootRay.intersectObjects(targets,false);
   if(h.length && h[0].object.userData.mummy) h[0].object.userData.mummy.hurt();
   else if(h.length) dust(h[0].point,7);
-  if(mag<=0) reload();
+  if(mag<=0) reloading=1.4;
 }
 var lastHit=0;
 function damage(n){
@@ -324,11 +274,3 @@ function groan(at){
   var g=Math.max(0.008,0.06*(1-d/22));
   ping(70+Math.random()*26,.85,g);
 }
-
-/* ---------- les caisses, une fois tout déclaré ---------- */
-ammoCrate(wx(10)+0.6, wz(26));
-ammoCrate(wx(18)-0.4, wz(22));
-ammoCrate(wx(11),      wz(13));
-ammoCrate(wx(18),      wz(18));
-ammoCrate(wx(14)+1.6,  wz(6));
-ammoCrate(wx(24),      wz(18));

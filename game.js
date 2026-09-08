@@ -2,21 +2,6 @@
 (function(){
 /* ─────────── 01-boot.js ─────────── */
 var $=function(s){ return document.querySelector(s); };
-/* Une exception levée pendant le jeu ne doit plus être invisible :
-   le banc d'essai ne couvre que le chargement. */
-function oops(where,e){
-  var box=document.getElementById("errbar");
-  if(!box){
-    box=document.createElement("div"); box.id="errbar";
-    box.style.cssText="position:fixed;left:0;right:0;bottom:0;z-index:999;background:#8a1f16;"+
-      "color:#fff;font:12px/1.5 ui-monospace,monospace;padding:9px 14px;white-space:pre-wrap";
-    document.body.appendChild(box);
-  }
-  box.textContent="Erreur ["+where+"] : "+((e&&e.message)||e)+
-    (e&&e.lineno?"  ligne "+e.lineno:"");
-}
-window.addEventListener("error",function(ev){ oops("exécution",ev); });
-window.addEventListener("unhandledrejection",function(ev){ oops("promesse",ev.reason); });
 function halt(t,c){ $("#intro").innerHTML='<div style="max-width:44em"><div class="kicker">La dalle ne bouge pas</div><h1>'+t+'</h1><div id="fail">'+c+'</div></div>'; }
 if(!window.THREE){ halt("Moteur 3D absent","<p>three.js n’a pas pu être chargé. Vérifiez le réseau et rechargez.</p>"); return; }
 
@@ -34,15 +19,6 @@ renderer.toneMapping=THREE.ACESFilmicToneMapping; renderer.toneMappingExposure=1
 renderer.shadowMap.enabled=true; renderer.shadowMap.type=THREE.PCFSoftShadowMap;
 renderer.shadowMap.autoUpdate=false;   // rafraîchi une image sur trois depuis la boucle
 document.body.appendChild(renderer.domElement);
-/* Un contexte WebGL perdu fige la dernière image sans lever d'erreur :
-   c'est indiscernable d'un plantage si on ne l'écoute pas. */
-renderer.domElement.addEventListener("webglcontextlost",function(e){
-  e.preventDefault();
-  oops("GPU","contexte WebGL perdu — le pilote graphique a redémarré. Rechargez la page.");
-},false);
-renderer.domElement.addEventListener("webglcontextrestored",function(){
-  oops("GPU","contexte rétabli — rechargez la page (F5).");
-},false);
 
 /* ---------- textures peintes ---------- */
 // carte de relief dérivée d'une carte de hauteur peinte : le pixel devient une normale
@@ -176,13 +152,9 @@ camera.position.set(wx(14),EYE,wz(25));
 })();
 scene.add(new THREE.AmbientLight(0x3a3020, 0.55));
 function torch(x,z,i,d){ var l=new THREE.PointLight(0xffa94d, i||4, d||13, 2); l.position.set(x,2.9,z); scene.add(l); return l; }
-/* Une lampe par salle, pas davantage. Chaque lumière allonge le shader de
-   TOUS les matériaux : neuf torches multipliaient le temps de compilation.
-   La torche portée par le joueur fait l'essentiel de l'éclairage. */
-var lampsA=[torch(wx(14),wz(24),6.5,24)];   // antichambre (faiblit avec le chrono)
-torch(wx(14),wz(15),7.5,30);                // grande salle
-torch(wx(14),wz(5), 5.0,24);                // chambre nord
-torch(wx(24),wz(15),4.5,22);                // chambre est
+var lampsA=[torch(wx(11),wz(23)),torch(wx(17),wz(26)),torch(wx(14),wz(21),3.5,12)];
+torch(wx(14),wz(15),7,26); torch(wx(11),wz(12),3,12); torch(wx(17),wz(18),3,12);
+torch(wx(14),wz(4),4.5,20); torch(wx(24),wz(15),4,18); torch(wx(3),wz(12),2.2,11);
 
 /* ─────────── 03-utils.js ─────────── */
 /* ============================================================
@@ -878,10 +850,6 @@ var texWrap=paint(256,256,function(g,w,h){
 });
 var matWrap=new THREE.MeshStandardMaterial({map:texWrap, roughness:.93, metalness:.02,
   normalMap:nWrap, normalScale:new THREE.Vector2(1.15,1.15), envMapIntensity:.5});
-var jawMat=new THREE.MeshStandardMaterial({color:0x120c05,roughness:1});
-var hitMat=new THREE.MeshBasicMaterial({visible:false});
-var ragMat=new THREE.MeshStandardMaterial({map:texWrap,roughness:1,side:THREE.DoubleSide,
-  transparent:true,opacity:.93,envMapIntensity:.4});   // partagé : 7 par gardien auparavant
 var mummies=[], hits=[];
 var GEO={};
 function gCyl(r1,r2,l,sg){ var k="c"+r1+r2+l+sg; return GEO[k]||(GEO[k]=new THREE.CylinderGeometry(r1,r2,l,sg)); }
@@ -906,7 +874,8 @@ function Mummy(x,z){
   // crâne bandé, mâchoire noire entrouverte
   var head=new THREE.Mesh(gSph(0.165,12,10), matWrap);
   head.position.set(0,1.63,0.01); head.scale.set(.92,1.10,1); head.castShadow=true; g.add(head);
-  var jaw=new THREE.Mesh(gSph(0.10,9,7), jawMat);
+  var jaw=new THREE.Mesh(gSph(0.10,9,7),
+    new THREE.MeshStandardMaterial({color:0x120c05,roughness:1}));
   jaw.position.set(0,1.50,0.075); jaw.scale.set(.9,.55,.8); g.add(jaw);
   var neck=new THREE.Mesh(gCyl(0.075,0.095,0.14,9), matWrap);
   neck.position.y=1.47; g.add(neck);
@@ -924,12 +893,14 @@ function Mummy(x,z){
   // bandelettes défaites qui pendent et flottent
   var rags=[];
   for(var q=0;q<7;q++){
-    var rg=new THREE.Mesh(gPln(0.055,0.36), ragMat);
+    var rg=new THREE.Mesh(gPln(0.055,0.36),
+      new THREE.MeshStandardMaterial({map:texWrap,roughness:1,side:THREE.DoubleSide,
+        transparent:true,opacity:.93}));
     var an=Math.random()*6.2832;
     rg.position.set(Math.cos(an)*0.19, 0.80+Math.random()*0.60, Math.sin(an)*0.19);
     rg.rotation.y=an; rg.scale.y=0.8+Math.random()*0.7; g.add(rg); rags.push(rg);
   }
-  var hit=new THREE.Mesh(gBox(0.78,1.95,0.78), hitMat);
+  var hit=new THREE.Mesh(gBox(0.78,1.95,0.78), new THREE.MeshBasicMaterial({visible:false}));
   hit.position.y=0.97; g.add(hit); hit.userData.mummy=this;
   this.g=g; this.hit=hit; this.la=la; this.ra=ra; this.ll=ll; this.rl=rl; this.rags=rags;
   this.hp=3; this.dead=false; this.t=Math.random()*6; this.cool=0; this.fall=0; this.stagger=0;
@@ -1047,58 +1018,12 @@ function dust(at,n){
 })();
 
 /* ---------- tir ---------- */
-var MAG=12, mag=MAG, res=48, RESMAX=120, reloading=0, shootRay=new THREE.Raycaster();
-/* --- caisses de cartouches : sans réserve finie, tirer n'a aucun coût --- */
-var crates=[];
-var crateWood=new THREE.MeshStandardMaterial({color:0x4a3a22,roughness:.9,envMapIntensity:.3});
-var crateBrass=new THREE.MeshStandardMaterial({color:0xc9a227,roughness:.3,metalness:1,
-  emissive:0xc9a227,emissiveIntensity:.55,envMapIntensity:1.4});   // brille sans lampe
-var crateBoxG=new THREE.BoxGeometry(0.42,0.26,0.30);
-var crateBandG=new THREE.BoxGeometry(0.44,0.05,0.32);
-var crateRndG=new THREE.CylinderGeometry(0.021,0.021,0.09,8);
-function ammoCrate(x,z){
-  var g=new THREE.Group(); g.position.set(x,0,z); scene.add(g);
-  var w=new THREE.Mesh(crateBoxG, crateWood);
-  w.position.y=0.13; w.castShadow=true; g.add(w);
-  var band=new THREE.Mesh(crateBandG, crateBrass);
-  band.position.y=0.20; g.add(band);
-  for(var i=0;i<4;i++){                       // cartouches qui dépassent
-    var c=new THREE.Mesh(crateRndG, crateBrass);
-    c.position.set(-0.10+i*0.068,0.29,0); g.add(c);
-  }
-  var o={g:g,l:{intensity:0},x:x,z:z,ready:true,t:0};   // plus de lampe : l’émissif suffit
-  crates.push(o); return o;
-}
-function stepCrates(dt){
-  for(var i=0;i<crates.length;i++){
-    var c=crates[i];
-    c.g.rotation.y+=dt*0.5;
-    if(!c.ready){
-      c.t-=dt;
-      if(c.t<=0){ c.ready=true; c.g.visible=true; c.l.intensity=1.1; }
-      continue;
-    }
-    c.g.position.y=Math.sin(performance.now()*0.0018+i)*0.03;
-    if(started && res<RESMAX &&
-       Math.hypot(camera.position.x-c.x,camera.position.z-c.z)<1.5){
-      res=Math.min(RESMAX,res+18); updAmmo(); ping(760,.18,.05);
-      say("Dix-huit cartouches récupérées.");
-      c.ready=false; c.t=40; c.g.visible=false; c.l.intensity=0;   // repousse en 40 s
-    }
-  }
-}
+var MAG=12, mag=MAG, reloading=0, shootRay=new THREE.Raycaster();
 function updAmmo(){
   $("#mag").textContent=reloading>0?"—":mag;
-  var r=document.getElementById("res"); if(r) r.textContent=res;
-  var box=document.getElementById("ammo");
-  if(box) box.classList.toggle("low", mag+res<=8);
   var p=$("#pips"), h="";
   for(var i=0;i<MAG;i++) h+='<span class="'+(i<mag?"":"out")+'"></span>';
   p.innerHTML=h;
-}
-function reload(){
-  if(reloading>0||mag>=MAG||res<=0) return;
-  reloading=1.4; updAmmo();
 }
 function hitMark(){
   var d=$("#dot"); d.classList.add("mark");
@@ -1106,10 +1031,7 @@ function hitMark(){
 }
 function shoot(){
   if(!hasGun||over||panel||reloading>0) return;
-  if(mag<=0){
-    if(res<=0){ ping(140,.10,.04); say("Plus une seule cartouche."); return; }
-    reload(); ping(180,.12,.03); return;
-  }
+  if(mag<=0){ reloading=1.4; updAmmo(); ping(180,.12,.03); return; }
   mag--; updAmmo(); kick=1; slideBack=1; bang(); ejectShell();
   netSend({k:"shot"});
   muzzle.intensity=7; gun.userData.flash.material.opacity=0.95;
@@ -1118,7 +1040,7 @@ function shoot(){
   var h=shootRay.intersectObjects(targets,false);
   if(h.length && h[0].object.userData.mummy) h[0].object.userData.mummy.hurt();
   else if(h.length) dust(h[0].point,7);
-  if(mag<=0) reload();
+  if(mag<=0) reloading=1.4;
 }
 var lastHit=0;
 function damage(n){
@@ -1191,14 +1113,6 @@ function groan(at){
   ping(70+Math.random()*26,.85,g);
 }
 
-/* ---------- les caisses, une fois tout déclaré ---------- */
-ammoCrate(wx(10)+0.6, wz(26));
-ammoCrate(wx(18)-0.4, wz(22));
-ammoCrate(wx(11),      wz(13));
-ammoCrate(wx(18),      wz(18));
-ammoCrate(wx(14)+1.6,  wz(6));
-ammoCrate(wx(24),      wz(18));
-
 /* ─────────── 11-net.js ─────────── */
 /* ============================================================
    JEU À DEUX  —  capacité "room" : tous ceux qui ont la page ouverte
@@ -1243,7 +1157,7 @@ function makeAvatar(name,col){
   belt.position.y=0.90; g.add(belt);
   var buckle=new THREE.Mesh(new THREE.BoxGeometry(0.075,0.055,0.02), metal);
   buckle.position.set(0,0.90,0.17); g.add(buckle);
-  var shoul=new THREE.Mesh(new THREE.CapsuleGeometry?new THREE.CylinderGeometry(0.075,0.075,0.44,10):new THREE.CylinderGeometry(0.075,0.075,0.44,10), coat);
+  var shoul=new THREE.Mesh(new THREE.CylinderGeometry(0.075,0.075,0.44,10), coat);
   shoul.rotation.z=Math.PI/2; shoul.position.y=1.40; shoul.castShadow=true; g.add(shoul);
   // bras
   var la=seg(g,0.32,0.070,0.058,coat,-0.225,1.38,0), laf=seg(la,0.30,0.056,0.048,coat,0,-0.32,0);
@@ -1604,7 +1518,6 @@ window.addEventListener("keydown",function(e){
   if(e.code==="KeyI") hint();
   if(e.code==="KeyT") openChat();
   if(e.code==="KeyM" && typeof toggleMic==="function") toggleMic();
-  if(e.code==="KeyF") reload();
   if(e.code==="KeyR") askReset();
   if(["ArrowUp","ArrowDown","ArrowLeft","ArrowRight","Space"].indexOf(e.code)>=0) e.preventDefault();
 });
@@ -1723,15 +1636,6 @@ function chrono(dt){
 }
 
 /* ---------- boucle ---------- */
-/* Plan d’ouverture : tant qu’on n’a pas commencé, la caméra tourne
-   lentement autour de l’antichambre derrière le panneau d’accueil. */
-var cineT=Math.PI*0.35;
-function cinematic(dt){
-  cineT+=dt*0.052;
-  var r=5.6;
-  camera.position.set(AX+Math.cos(cineT)*r, 1.78+Math.sin(cineT*1.6)*0.14, AZ+Math.sin(cineT)*r);
-  yaw=Math.PI/2-cineT; pitch=-0.05+Math.sin(cineT*0.8)*0.03;
-}
 var clk=new THREE.Clock();
 var elWhere=$("#where"), elGoal=$("#goal"), elTip=$("#tip"),
     elDot=$("#dot"), elClock=$("#clock"), elFps=$("#fps");
@@ -1739,8 +1643,7 @@ var fpsAcc=0, fpsN=0;
 function loop(){
   requestAnimationFrame(loop);
   var dt=Math.min(clk.getDelta(),0.05);
-  if(!started) cinematic(dt); else walk(dt);
-  camera.rotation.set(pitch,yaw,0,"YXZ");
+  walk(dt); camera.rotation.set(pitch,yaw,0,"YXZ");
   if((fr++ & 3)===0 && started && !panel) scan();
 
   var sc=seals[0]?1:anaScore();
@@ -1790,10 +1693,7 @@ function loop(){
   stepShells(dt); footsteps(dt); ambientGroans(dt);
   if(typeof stepMate==='function') stepMate(dt);
   if(reloading>0){ reloading-=dt;
-    if(reloading<=0){ reloading=0;
-      var need=MAG-mag, take=Math.min(need,res); mag+=take; res-=take;
-      updAmmo(); ping(520,.09,.04); } }
-  stepCrates(dt);
+    if(reloading<=0){ reloading=0; mag=MAG; updAmmo(); ping(520,.09,.04); } }
   viewmodel(dt,moving);
 
   elWhere.textContent=RN[room()];
@@ -1804,10 +1704,8 @@ function loop(){
   if(fpsAcc>=0.5){ elFps.textContent=Math.round(fpsN/fpsAcc)+" ips"; fpsAcc=0; fpsN=0; }
   renderer.clear();
   renderer.render(scene,camera);
-  if(started){                     // pas de mains sur l'écran d'accueil
-    renderer.clearDepth();         // et elles ne traversent aucun mur
-    renderer.render(vmScene,vmCam);
-  }
+  renderer.clearDepth();          // les mains ne peuvent traverser aucun mur
+  renderer.render(vmScene,vmCam);
 }
 loop();
 addEventListener("resize",function(){
@@ -1816,54 +1714,17 @@ addEventListener("resize",function(){
   renderer.setSize(innerWidth,innerHeight);
 });
 
-/* Le départ est étalé sur plusieurs images : chaque étape rend la main au
-   navigateur, donc aucune ne peut figer l'écran, et l'étape en cours
-   s'affiche — si ça s'arrête, on sait exactement où. */
-function stage(txt){
-  var e=document.getElementById("boot");
-  if(!e){
-    e=document.createElement("div"); e.id="boot";
-    e.style.cssText="position:fixed;left:50%;bottom:64px;transform:translateX(-50%);z-index:60;"+
-      "padding:8px 16px;border-radius:99px;background:rgba(20,16,10,.86);color:#e8b860;"+
-      "font:600 11px/1 ui-monospace,monospace;letter-spacing:.14em;pointer-events:none";
-    document.body.appendChild(e);
-  }
-  if(txt===null){ e.remove(); return; }
-  e.textContent=txt;
-}
 function startGame(){
   if(started) return;
-  started=true;
-  var steps=[
-    ["interface", function(){
-      document.body.classList.add("playing");
-      var iv=document.getElementById("intro"); if(iv) iv.remove();
-    }],
-    ["caméra", function(){
-      camera.position.set(wx(14),EYE,wz(25)); yaw=0; pitch=0; clk.getDelta();
-    }],
-    ["armement", function(){ hasGun=true; updAmmo(); }],
-    ["gardiens", function(){
-      new Mummy(wx(11),   wz(22.5));
-      new Mummy(wx(18),   wz(27.0));
-      new Mummy(wx(11.5), wz(27.5));
-    }],
-    ["son", function(){ ping(440,.3,.04); ambience(); groan(camera.position); }],
-    ["pointeur", function(){ grab(); }],
-    ["prêt", function(){
-      setTimeout(function(){ $("#bar").classList.add("faded"); },12000);
-      say("La dalle est retombée. Vingt minutes — et vous n’êtes pas seul ici.");
-      setTimeout(function(){ stage(null); },900);
-    }]
-  ];
-  var i=0;
-  (function next(){
-    if(i>=steps.length) return;
-    var st=steps[i++];
-    stage(st[0]+" …");
-    try{ st[1](); }catch(e){ oops(st[0],e); }
-    requestAnimationFrame(next);        // le navigateur respire entre chaque étape
-  })();
+  var iv=document.getElementById("intro"); if(iv) iv.remove();
+  started=true; clk.getDelta(); grab(); ping(440,.3,.04);
+  hasGun=true; updAmmo(); ambience();
+  setTimeout(function(){ $("#bar").classList.add("faded"); },12000);
+  new Mummy(wx(11),   wz(22.5));
+  new Mummy(wx(18),   wz(27.0));
+  new Mummy(wx(11.5), wz(27.5));
+  groan(camera.position);
+  say("La dalle est retombée. Vingt minutes — et vous n’êtes pas seul ici.");
 }
 $("#enter").addEventListener("click",startGame);
 

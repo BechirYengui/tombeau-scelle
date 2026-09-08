@@ -1,19 +1,4 @@
 var $=function(s){ return document.querySelector(s); };
-/* Une exception levée pendant le jeu ne doit plus être invisible :
-   le banc d'essai ne couvre que le chargement. */
-function oops(where,e){
-  var box=document.getElementById("errbar");
-  if(!box){
-    box=document.createElement("div"); box.id="errbar";
-    box.style.cssText="position:fixed;left:0;right:0;bottom:0;z-index:999;background:#8a1f16;"+
-      "color:#fff;font:12px/1.5 ui-monospace,monospace;padding:9px 14px;white-space:pre-wrap";
-    document.body.appendChild(box);
-  }
-  box.textContent="Erreur ["+where+"] : "+((e&&e.message)||e)+
-    (e&&e.lineno?"  ligne "+e.lineno:"");
-}
-window.addEventListener("error",function(ev){ oops("exécution",ev); });
-window.addEventListener("unhandledrejection",function(ev){ oops("promesse",ev.reason); });
 function halt(t,c){ $("#intro").innerHTML='<div style="max-width:44em"><div class="kicker">La dalle ne bouge pas</div><h1>'+t+'</h1><div id="fail">'+c+'</div></div>'; }
 if(!window.THREE){ halt("Moteur 3D absent","<p>three.js n’a pas pu être chargé. Vérifiez le réseau et rechargez.</p>"); return; }
 
@@ -31,15 +16,6 @@ renderer.toneMapping=THREE.ACESFilmicToneMapping; renderer.toneMappingExposure=1
 renderer.shadowMap.enabled=true; renderer.shadowMap.type=THREE.PCFSoftShadowMap;
 renderer.shadowMap.autoUpdate=false;   // rafraîchi une image sur trois depuis la boucle
 document.body.appendChild(renderer.domElement);
-/* Un contexte WebGL perdu fige la dernière image sans lever d'erreur :
-   c'est indiscernable d'un plantage si on ne l'écoute pas. */
-renderer.domElement.addEventListener("webglcontextlost",function(e){
-  e.preventDefault();
-  oops("GPU","contexte WebGL perdu — le pilote graphique a redémarré. Rechargez la page.");
-},false);
-renderer.domElement.addEventListener("webglcontextrestored",function(){
-  oops("GPU","contexte rétabli — rechargez la page (F5).");
-},false);
 
 /* ---------- textures peintes ---------- */
 // carte de relief dérivée d'une carte de hauteur peinte : le pixel devient une normale

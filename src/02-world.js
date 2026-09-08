@@ -43,10 +43,6 @@ camera.position.set(wx(14),EYE,wz(25));
 })();
 scene.add(new THREE.AmbientLight(0x3a3020, 0.55));
 function torch(x,z,i,d){ var l=new THREE.PointLight(0xffa94d, i||4, d||13, 2); l.position.set(x,2.9,z); scene.add(l); return l; }
-/* Une lampe par salle, pas davantage. Chaque lumière allonge le shader de
-   TOUS les matériaux : neuf torches multipliaient le temps de compilation.
-   La torche portée par le joueur fait l'essentiel de l'éclairage. */
-var lampsA=[torch(wx(14),wz(24),6.5,24)];   // antichambre (faiblit avec le chrono)
-torch(wx(14),wz(15),7.5,30);                // grande salle
-torch(wx(14),wz(5), 5.0,24);                // chambre nord
-torch(wx(24),wz(15),4.5,22);                // chambre est
+var lampsA=[torch(wx(11),wz(23)),torch(wx(17),wz(26)),torch(wx(14),wz(21),3.5,12)];
+torch(wx(14),wz(15),7,26); torch(wx(11),wz(12),3,12); torch(wx(17),wz(18),3,12);
+torch(wx(14),wz(4),4.5,20); torch(wx(24),wz(15),4,18); torch(wx(3),wz(12),2.2,11);
