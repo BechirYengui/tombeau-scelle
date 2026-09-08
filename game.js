@@ -1018,12 +1018,54 @@ function dust(at,n){
 })();
 
 /* ---------- tir ---------- */
-var MAG=12, mag=MAG, reloading=0, shootRay=new THREE.Raycaster();
+var MAG=12, mag=MAG, res=48, RESMAX=120, reloading=0, shootRay=new THREE.Raycaster();
+/* --- caisses de cartouches : sans réserve finie, tirer n'a aucun coût --- */
+var crates=[];
+function ammoCrate(x,z){
+  var g=new THREE.Group(); g.position.set(x,0,z); scene.add(g);
+  var w=new THREE.Mesh(new THREE.BoxGeometry(0.42,0.26,0.30),
+    new THREE.MeshStandardMaterial({color:0x4a3a22,roughness:.9,envMapIntensity:.3}));
+  w.position.y=0.13; w.castShadow=true; g.add(w);
+  var band=new THREE.Mesh(new THREE.BoxGeometry(0.44,0.05,0.32), brass);
+  band.position.y=0.20; g.add(band);
+  for(var i=0;i<4;i++){                       // cartouches qui dépassent
+    var c=new THREE.Mesh(new THREE.CylinderGeometry(0.021,0.021,0.09,8), brass);
+    c.position.set(-0.10+i*0.068,0.29,0); g.add(c);
+  }
+  var l=new THREE.PointLight(0xffcf87,1.1,2.6,2); l.position.set(x,0.6,z); scene.add(l);
+  var o={g:g,l:l,x:x,z:z,ready:true,t:0};
+  crates.push(o); return o;
+}
+function stepCrates(dt){
+  for(var i=0;i<crates.length;i++){
+    var c=crates[i];
+    c.g.rotation.y+=dt*0.5;
+    if(!c.ready){
+      c.t-=dt;
+      if(c.t<=0){ c.ready=true; c.g.visible=true; c.l.intensity=1.1; }
+      continue;
+    }
+    c.g.position.y=Math.sin(performance.now()*0.0018+i)*0.03;
+    if(started && res<RESMAX &&
+       Math.hypot(camera.position.x-c.x,camera.position.z-c.z)<1.5){
+      res=Math.min(RESMAX,res+18); updAmmo(); ping(760,.18,.05);
+      say("Dix-huit cartouches récupérées.");
+      c.ready=false; c.t=40; c.g.visible=false; c.l.intensity=0;   // repousse en 40 s
+    }
+  }
+}
 function updAmmo(){
   $("#mag").textContent=reloading>0?"—":mag;
+  var r=document.getElementById("res"); if(r) r.textContent=res;
+  var box=document.getElementById("ammo");
+  if(box) box.classList.toggle("low", mag+res<=8);
   var p=$("#pips"), h="";
   for(var i=0;i<MAG;i++) h+='<span class="'+(i<mag?"":"out")+'"></span>';
   p.innerHTML=h;
+}
+function reload(){
+  if(reloading>0||mag>=MAG||res<=0) return;
+  reloading=1.4; updAmmo();
 }
 function hitMark(){
   var d=$("#dot"); d.classList.add("mark");
@@ -1031,7 +1073,10 @@ function hitMark(){
 }
 function shoot(){
   if(!hasGun||over||panel||reloading>0) return;
-  if(mag<=0){ reloading=1.4; updAmmo(); ping(180,.12,.03); return; }
+  if(mag<=0){
+    if(res<=0){ ping(140,.10,.04); say("Plus une seule cartouche."); return; }
+    reload(); ping(180,.12,.03); return;
+  }
   mag--; updAmmo(); kick=1; slideBack=1; bang(); ejectShell();
   netSend({k:"shot"});
   muzzle.intensity=7; gun.userData.flash.material.opacity=0.95;
@@ -1040,7 +1085,7 @@ function shoot(){
   var h=shootRay.intersectObjects(targets,false);
   if(h.length && h[0].object.userData.mummy) h[0].object.userData.mummy.hurt();
   else if(h.length) dust(h[0].point,7);
-  if(mag<=0) reloading=1.4;
+  if(mag<=0) reload();
 }
 var lastHit=0;
 function damage(n){
@@ -1112,6 +1157,14 @@ function groan(at){
   var g=Math.max(0.008,0.06*(1-d/22));
   ping(70+Math.random()*26,.85,g);
 }
+
+/* ---------- les caisses, une fois tout déclaré ---------- */
+ammoCrate(wx(10)+0.6, wz(26));
+ammoCrate(wx(18)-0.4, wz(22));
+ammoCrate(wx(11),      wz(13));
+ammoCrate(wx(18),      wz(18));
+ammoCrate(wx(14)+1.6,  wz(6));
+ammoCrate(wx(24),      wz(18));
 
 /* ─────────── 11-net.js ─────────── */
 /* ============================================================
@@ -1518,6 +1571,7 @@ window.addEventListener("keydown",function(e){
   if(e.code==="KeyI") hint();
   if(e.code==="KeyT") openChat();
   if(e.code==="KeyM" && typeof toggleMic==="function") toggleMic();
+  if(e.code==="KeyF") reload();
   if(e.code==="KeyR") askReset();
   if(["ArrowUp","ArrowDown","ArrowLeft","ArrowRight","Space"].indexOf(e.code)>=0) e.preventDefault();
 });
@@ -1636,6 +1690,15 @@ function chrono(dt){
 }
 
 /* ---------- boucle ---------- */
+/* Plan d’ouverture : tant qu’on n’a pas commencé, la caméra tourne
+   lentement autour de l’antichambre derrière le panneau d’accueil. */
+var cineT=Math.PI*0.35;
+function cinematic(dt){
+  cineT+=dt*0.052;
+  var r=5.6;
+  camera.position.set(AX+Math.cos(cineT)*r, 1.78+Math.sin(cineT*1.6)*0.14, AZ+Math.sin(cineT)*r);
+  yaw=Math.PI/2-cineT; pitch=-0.05+Math.sin(cineT*0.8)*0.03;
+}
 var clk=new THREE.Clock();
 var elWhere=$("#where"), elGoal=$("#goal"), elTip=$("#tip"),
     elDot=$("#dot"), elClock=$("#clock"), elFps=$("#fps");
@@ -1643,7 +1706,8 @@ var fpsAcc=0, fpsN=0;
 function loop(){
   requestAnimationFrame(loop);
   var dt=Math.min(clk.getDelta(),0.05);
-  walk(dt); camera.rotation.set(pitch,yaw,0,"YXZ");
+  if(!started) cinematic(dt); else walk(dt);
+  camera.rotation.set(pitch,yaw,0,"YXZ");
   if((fr++ & 3)===0 && started && !panel) scan();
 
   var sc=seals[0]?1:anaScore();
@@ -1693,7 +1757,10 @@ function loop(){
   stepShells(dt); footsteps(dt); ambientGroans(dt);
   if(typeof stepMate==='function') stepMate(dt);
   if(reloading>0){ reloading-=dt;
-    if(reloading<=0){ reloading=0; mag=MAG; updAmmo(); ping(520,.09,.04); } }
+    if(reloading<=0){ reloading=0;
+      var need=MAG-mag, take=Math.min(need,res); mag+=take; res-=take;
+      updAmmo(); ping(520,.09,.04); } }
+  stepCrates(dt);
   viewmodel(dt,moving);
 
   elWhere.textContent=RN[room()];
@@ -1716,6 +1783,7 @@ addEventListener("resize",function(){
 
 function startGame(){
   if(started) return;
+  camera.position.set(wx(14),EYE,wz(25)); yaw=0; pitch=0;   // fin du plan d’ouverture
   var iv=document.getElementById("intro"); if(iv) iv.remove();
   started=true; clk.getDelta(); grab(); ping(440,.3,.04);
   hasGun=true; updAmmo(); ambience();

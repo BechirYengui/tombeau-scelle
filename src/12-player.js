@@ -33,6 +33,7 @@ window.addEventListener("keydown",function(e){
   if(e.code==="KeyI") hint();
   if(e.code==="KeyT") openChat();
   if(e.code==="KeyM" && typeof toggleMic==="function") toggleMic();
+  if(e.code==="KeyF") reload();
   if(e.code==="KeyR") askReset();
   if(["ArrowUp","ArrowDown","ArrowLeft","ArrowRight","Space"].indexOf(e.code)>=0) e.preventDefault();
 });
@@ -151,6 +152,15 @@ function chrono(dt){
 }
 
 /* ---------- boucle ---------- */
+/* Plan d’ouverture : tant qu’on n’a pas commencé, la caméra tourne
+   lentement autour de l’antichambre derrière le panneau d’accueil. */
+var cineT=Math.PI*0.35;
+function cinematic(dt){
+  cineT+=dt*0.052;
+  var r=5.6;
+  camera.position.set(AX+Math.cos(cineT)*r, 1.78+Math.sin(cineT*1.6)*0.14, AZ+Math.sin(cineT)*r);
+  yaw=Math.PI/2-cineT; pitch=-0.05+Math.sin(cineT*0.8)*0.03;
+}
 var clk=new THREE.Clock();
 var elWhere=$("#where"), elGoal=$("#goal"), elTip=$("#tip"),
     elDot=$("#dot"), elClock=$("#clock"), elFps=$("#fps");
@@ -158,7 +168,8 @@ var fpsAcc=0, fpsN=0;
 function loop(){
   requestAnimationFrame(loop);
   var dt=Math.min(clk.getDelta(),0.05);
-  walk(dt); camera.rotation.set(pitch,yaw,0,"YXZ");
+  if(!started) cinematic(dt); else walk(dt);
+  camera.rotation.set(pitch,yaw,0,"YXZ");
   if((fr++ & 3)===0 && started && !panel) scan();
 
   var sc=seals[0]?1:anaScore();
@@ -208,7 +219,10 @@ function loop(){
   stepShells(dt); footsteps(dt); ambientGroans(dt);
   if(typeof stepMate==='function') stepMate(dt);
   if(reloading>0){ reloading-=dt;
-    if(reloading<=0){ reloading=0; mag=MAG; updAmmo(); ping(520,.09,.04); } }
+    if(reloading<=0){ reloading=0;
+      var need=MAG-mag, take=Math.min(need,res); mag+=take; res-=take;
+      updAmmo(); ping(520,.09,.04); } }
+  stepCrates(dt);
   viewmodel(dt,moving);
 
   elWhere.textContent=RN[room()];
@@ -231,6 +245,7 @@ addEventListener("resize",function(){
 
 function startGame(){
   if(started) return;
+  camera.position.set(wx(14),EYE,wz(25)); yaw=0; pitch=0;   // fin du plan d’ouverture
   var iv=document.getElementById("intro"); if(iv) iv.remove();
   started=true; clk.getDelta(); grab(); ping(440,.3,.04);
   hasGun=true; updAmmo(); ambience();
