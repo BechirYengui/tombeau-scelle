@@ -1,0 +1,11 @@
+{
+  "name": "tombeau-scelle",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Escape room 3D jouable a deux avec voix (WebGL + WebRTC)",
+  "scripts": {
+    "start": "python3 -m http.server 5173",
+    "check": "node harness.js"
+  },
+  "license": "MIT"
+}
