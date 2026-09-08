@@ -420,6 +420,21 @@ body.playing .hud{opacity:1}
 (function(){
 /* ─────────── 01-boot.js ─────────── */
 var $=function(s){ return document.querySelector(s); };
+/* Une exception levée pendant le jeu ne doit plus être invisible :
+   le banc d'essai ne couvre que le chargement. */
+function oops(where,e){
+  var box=document.getElementById("errbar");
+  if(!box){
+    box=document.createElement("div"); box.id="errbar";
+    box.style.cssText="position:fixed;left:0;right:0;bottom:0;z-index:999;background:#8a1f16;"+
+      "color:#fff;font:12px/1.5 ui-monospace,monospace;padding:9px 14px;white-space:pre-wrap";
+    document.body.appendChild(box);
+  }
+  box.textContent="Erreur ["+where+"] : "+((e&&e.message)||e)+
+    (e&&e.lineno?"  ligne "+e.lineno:"");
+}
+window.addEventListener("error",function(ev){ oops("exécution",ev); });
+window.addEventListener("unhandledrejection",function(ev){ oops("promesse",ev.reason); });
 function halt(t,c){ $("#intro").innerHTML='<div style="max-width:44em"><div class="kicker">La dalle ne bouge pas</div><h1>'+t+'</h1><div id="fail">'+c+'</div></div>'; }
 if(!window.THREE){ halt("Moteur 3D absent","<p>three.js n’a pas pu être chargé. Vérifiez le réseau et rechargez.</p>"); return; }
 
@@ -2201,19 +2216,33 @@ addEventListener("resize",function(){
   renderer.setSize(innerWidth,innerHeight);
 });
 
+/* Le départ est découpé en étapes isolées : une seule d'entre elles qui
+   échoue ne doit jamais empêcher la partie de commencer. « started » est
+   posé en tout premier, avant quoi que ce soit qui puisse lever. */
+function step(label,fn){ try{ fn(); }catch(e){ oops(label,e); } }
 function startGame(){
   if(started) return;
-  document.body.classList.add("playing");     // révèle l'interface et les mains
-  camera.position.set(wx(14),EYE,wz(25)); yaw=0; pitch=0;   // fin du plan d’ouverture
-  var iv=document.getElementById("intro"); if(iv) iv.remove();
-  started=true; clk.getDelta(); grab(); ping(440,.3,.04);
-  hasGun=true; updAmmo(); ambience();
-  setTimeout(function(){ $("#bar").classList.add("faded"); },12000);
-  new Mummy(wx(11),   wz(22.5));
-  new Mummy(wx(18),   wz(27.0));
-  new Mummy(wx(11.5), wz(27.5));
-  groan(camera.position);
-  say("La dalle est retombée. Vingt minutes — et vous n’êtes pas seul ici.");
+  started=true;
+  step("interface", function(){
+    document.body.classList.add("playing");
+    var iv=document.getElementById("intro"); if(iv) iv.remove();
+  });
+  step("caméra", function(){
+    camera.position.set(wx(14),EYE,wz(25)); yaw=0; pitch=0; clk.getDelta();
+  });
+  step("pointeur", function(){ grab(); });
+  step("armement", function(){ hasGun=true; updAmmo(); });
+  step("son",      function(){ ping(440,.3,.04); ambience(); });
+  step("gardiens", function(){
+    new Mummy(wx(11),   wz(22.5));
+    new Mummy(wx(18),   wz(27.0));
+    new Mummy(wx(11.5), wz(27.5));
+    groan(camera.position);
+  });
+  step("annonce",  function(){
+    setTimeout(function(){ $("#bar").classList.add("faded"); },12000);
+    say("La dalle est retombée. Vingt minutes — et vous n’êtes pas seul ici.");
+  });
 }
 $("#enter").addEventListener("click",startGame);
 

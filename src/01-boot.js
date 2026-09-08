@@ -1,4 +1,19 @@
 var $=function(s){ return document.querySelector(s); };
+/* Une exception levée pendant le jeu ne doit plus être invisible :
+   le banc d'essai ne couvre que le chargement. */
+function oops(where,e){
+  var box=document.getElementById("errbar");
+  if(!box){
+    box=document.createElement("div"); box.id="errbar";
+    box.style.cssText="position:fixed;left:0;right:0;bottom:0;z-index:999;background:#8a1f16;"+
+      "color:#fff;font:12px/1.5 ui-monospace,monospace;padding:9px 14px;white-space:pre-wrap";
+    document.body.appendChild(box);
+  }
+  box.textContent="Erreur ["+where+"] : "+((e&&e.message)||e)+
+    (e&&e.lineno?"  ligne "+e.lineno:"");
+}
+window.addEventListener("error",function(ev){ oops("exécution",ev); });
+window.addEventListener("unhandledrejection",function(ev){ oops("promesse",ev.reason); });
 function halt(t,c){ $("#intro").innerHTML='<div style="max-width:44em"><div class="kicker">La dalle ne bouge pas</div><h1>'+t+'</h1><div id="fail">'+c+'</div></div>'; }
 if(!window.THREE){ halt("Moteur 3D absent","<p>three.js n’a pas pu être chargé. Vérifiez le réseau et rechargez.</p>"); return; }
 

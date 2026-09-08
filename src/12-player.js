@@ -245,19 +245,33 @@ addEventListener("resize",function(){
   renderer.setSize(innerWidth,innerHeight);
 });
 
+/* Le départ est découpé en étapes isolées : une seule d'entre elles qui
+   échoue ne doit jamais empêcher la partie de commencer. « started » est
+   posé en tout premier, avant quoi que ce soit qui puisse lever. */
+function step(label,fn){ try{ fn(); }catch(e){ oops(label,e); } }
 function startGame(){
   if(started) return;
-  document.body.classList.add("playing");     // révèle l'interface et les mains
-  camera.position.set(wx(14),EYE,wz(25)); yaw=0; pitch=0;   // fin du plan d’ouverture
-  var iv=document.getElementById("intro"); if(iv) iv.remove();
-  started=true; clk.getDelta(); grab(); ping(440,.3,.04);
-  hasGun=true; updAmmo(); ambience();
-  setTimeout(function(){ $("#bar").classList.add("faded"); },12000);
-  new Mummy(wx(11),   wz(22.5));
-  new Mummy(wx(18),   wz(27.0));
-  new Mummy(wx(11.5), wz(27.5));
-  groan(camera.position);
-  say("La dalle est retombée. Vingt minutes — et vous n’êtes pas seul ici.");
+  started=true;
+  step("interface", function(){
+    document.body.classList.add("playing");
+    var iv=document.getElementById("intro"); if(iv) iv.remove();
+  });
+  step("caméra", function(){
+    camera.position.set(wx(14),EYE,wz(25)); yaw=0; pitch=0; clk.getDelta();
+  });
+  step("pointeur", function(){ grab(); });
+  step("armement", function(){ hasGun=true; updAmmo(); });
+  step("son",      function(){ ping(440,.3,.04); ambience(); });
+  step("gardiens", function(){
+    new Mummy(wx(11),   wz(22.5));
+    new Mummy(wx(18),   wz(27.0));
+    new Mummy(wx(11.5), wz(27.5));
+    groan(camera.position);
+  });
+  step("annonce",  function(){
+    setTimeout(function(){ $("#bar").classList.add("faded"); },12000);
+    say("La dalle est retombée. Vingt minutes — et vous n’êtes pas seul ici.");
+  });
 }
 $("#enter").addEventListener("click",startGame);
 
