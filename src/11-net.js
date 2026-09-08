@@ -96,6 +96,10 @@ function underRate(b,perSec){                // un pair ne peut pas noyer la bou
   if(now-b.t>1000){ b.t=now; b.n=0; }
   return (++b.n)<=perSec;
 }
+function armEnter(txt){
+  var b=document.getElementById("enter");
+  if(b){ b.textContent=txt||"Descendre dans le tombeau"; b.classList.add("ready"); }
+}
 function netSend(o){ if(net.conn&&net.conn.open){ try{ net.conn.send(o); }catch(e){} } }
 function onPacket(d,conn){
   if(!underRate(flood,80)) return;                    // 80 paquets/s au plus
@@ -142,7 +146,9 @@ function wire(c){
   c.on("open",function(){
     if(!net.host) netSend({k:"hello",code:net.code});   // le visiteur prouve qu'il detient le code
     else setTimeout(function(){ if(!c.__ok){ stat("Pair non identifié — rejeté."); try{c.close();}catch(e){} } },6000);
-    stat("Coéquipier connecté" + (net.mic?" — ouverture de la voix…":" — activez le micro pour parler."));
+    stat("Coéquipier connecté" + (net.mic?" — voix en cours d’ouverture. Vous pouvez descendre."
+                                          :" — activez le micro, puis descendez."));
+    armEnter("Descendre dans le tombeau");
     tryCall();
   });
   c.on("data",function(d){ onPacket(d,c); });
@@ -176,7 +182,8 @@ function netHost(){
   net.peer.on("open",function(){
     var e=$("#lcode"); e.textContent=net.code; e.classList.add("on");
     $("#gcodev").textContent=net.code; $("#gcode").classList.add("on");
-    stat("Partie ouverte. Code : "+net.code+" — en attente du coéquipier.");
+    stat("Partie ouverte. Transmettez le code, attendez votre coéquipier, puis descendez.");
+    armEnter("Descendre dans le tombeau");
   });
   attachPeer();
 }
@@ -196,6 +203,7 @@ function netJoin(){
   });
   attachPeer();
   $("#gcodev").textContent=code; $("#gcode").classList.add("on");
+  armEnter("Descendre dans le tombeau");
   return true;
 }
 function toggleMic(){
@@ -219,12 +227,12 @@ function toggleMic(){
 (function(){
   var h=$("#bHost"), j=$("#bJoin"), m=$("#bMic"), jc=$("#jcode");
   if(!h) return;
-  h.addEventListener("click",function(){ jc.classList.remove("on"); netHost(); startGame(); });
+  h.addEventListener("click",function(){ jc.classList.remove("on"); netHost(); });
   j.addEventListener("click",function(){
     jc.classList.add("on"); jc.focus();
     stat("Entrez les 6 lettres du code, puis Entrée.");
   });
-  jc.addEventListener("keydown",function(e){ if(e.key==="Enter"){ if(netJoin()) startGame(); } });
+  jc.addEventListener("keydown",function(e){ if(e.key==="Enter") netJoin(); });
   m.addEventListener("click",toggleMic);
   setInterval(function(){
     if(!started) return;

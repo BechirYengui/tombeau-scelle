@@ -175,6 +175,9 @@ canvas{display:block;position:fixed;inset:0;touch-action:none}
   border:0;border-radius:99px;cursor:pointer;box-shadow:0 10px 30px rgba(232,184,96,.28);
   transition:.2s cubic-bezier(.2,.9,.3,1)}
 .go:hover{transform:translateY(-2px);box-shadow:0 16px 40px rgba(232,184,96,.42)}
+.go.ready{animation:ready 1.8s ease-in-out infinite}
+@keyframes ready{0%,100%{box-shadow:0 10px 30px rgba(232,184,96,.28)}
+  50%{box-shadow:0 10px 44px rgba(232,184,96,.72)}}
 .go:active{transform:translateY(0) scale(.98)}
 .stats{display:flex;gap:10px;justify-content:center;margin:0 0 30px;flex-wrap:wrap}
 .stats > div{min-width:120px;padding:16px 20px;background:rgba(255,255,255,.04);
