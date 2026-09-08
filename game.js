@@ -34,6 +34,15 @@ renderer.toneMapping=THREE.ACESFilmicToneMapping; renderer.toneMappingExposure=1
 renderer.shadowMap.enabled=true; renderer.shadowMap.type=THREE.PCFSoftShadowMap;
 renderer.shadowMap.autoUpdate=false;   // rafraîchi une image sur trois depuis la boucle
 document.body.appendChild(renderer.domElement);
+/* Un contexte WebGL perdu fige la dernière image sans lever d'erreur :
+   c'est indiscernable d'un plantage si on ne l'écoute pas. */
+renderer.domElement.addEventListener("webglcontextlost",function(e){
+  e.preventDefault();
+  oops("GPU","contexte WebGL perdu — le pilote graphique a redémarré. Rechargez la page.");
+},false);
+renderer.domElement.addEventListener("webglcontextrestored",function(){
+  oops("GPU","contexte rétabli — rechargez la page (F5).");
+},false);
 
 /* ---------- textures peintes ---------- */
 // carte de relief dérivée d'une carte de hauteur peinte : le pixel devient une normale
@@ -1807,33 +1816,54 @@ addEventListener("resize",function(){
   renderer.setSize(innerWidth,innerHeight);
 });
 
-/* Le départ est découpé en étapes isolées : une seule d'entre elles qui
-   échoue ne doit jamais empêcher la partie de commencer. « started » est
-   posé en tout premier, avant quoi que ce soit qui puisse lever. */
-function step(label,fn){ try{ fn(); }catch(e){ oops(label,e); } }
+/* Le départ est étalé sur plusieurs images : chaque étape rend la main au
+   navigateur, donc aucune ne peut figer l'écran, et l'étape en cours
+   s'affiche — si ça s'arrête, on sait exactement où. */
+function stage(txt){
+  var e=document.getElementById("boot");
+  if(!e){
+    e=document.createElement("div"); e.id="boot";
+    e.style.cssText="position:fixed;left:50%;bottom:64px;transform:translateX(-50%);z-index:60;"+
+      "padding:8px 16px;border-radius:99px;background:rgba(20,16,10,.86);color:#e8b860;"+
+      "font:600 11px/1 ui-monospace,monospace;letter-spacing:.14em;pointer-events:none";
+    document.body.appendChild(e);
+  }
+  if(txt===null){ e.remove(); return; }
+  e.textContent=txt;
+}
 function startGame(){
   if(started) return;
   started=true;
-  step("interface", function(){
-    document.body.classList.add("playing");
-    var iv=document.getElementById("intro"); if(iv) iv.remove();
-  });
-  step("caméra", function(){
-    camera.position.set(wx(14),EYE,wz(25)); yaw=0; pitch=0; clk.getDelta();
-  });
-  step("pointeur", function(){ grab(); });
-  step("armement", function(){ hasGun=true; updAmmo(); });
-  step("son",      function(){ ping(440,.3,.04); ambience(); });
-  step("gardiens", function(){
-    new Mummy(wx(11),   wz(22.5));
-    new Mummy(wx(18),   wz(27.0));
-    new Mummy(wx(11.5), wz(27.5));
-    groan(camera.position);
-  });
-  step("annonce",  function(){
-    setTimeout(function(){ $("#bar").classList.add("faded"); },12000);
-    say("La dalle est retombée. Vingt minutes — et vous n’êtes pas seul ici.");
-  });
+  var steps=[
+    ["interface", function(){
+      document.body.classList.add("playing");
+      var iv=document.getElementById("intro"); if(iv) iv.remove();
+    }],
+    ["caméra", function(){
+      camera.position.set(wx(14),EYE,wz(25)); yaw=0; pitch=0; clk.getDelta();
+    }],
+    ["armement", function(){ hasGun=true; updAmmo(); }],
+    ["gardiens", function(){
+      new Mummy(wx(11),   wz(22.5));
+      new Mummy(wx(18),   wz(27.0));
+      new Mummy(wx(11.5), wz(27.5));
+    }],
+    ["son", function(){ ping(440,.3,.04); ambience(); groan(camera.position); }],
+    ["pointeur", function(){ grab(); }],
+    ["prêt", function(){
+      setTimeout(function(){ $("#bar").classList.add("faded"); },12000);
+      say("La dalle est retombée. Vingt minutes — et vous n’êtes pas seul ici.");
+      setTimeout(function(){ stage(null); },900);
+    }]
+  ];
+  var i=0;
+  (function next(){
+    if(i>=steps.length) return;
+    var st=steps[i++];
+    stage(st[0]+" …");
+    try{ st[1](); }catch(e){ oops(st[0],e); }
+    requestAnimationFrame(next);        // le navigateur respire entre chaque étape
+  })();
 }
 $("#enter").addEventListener("click",startGame);
 

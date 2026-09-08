@@ -31,6 +31,15 @@ renderer.toneMapping=THREE.ACESFilmicToneMapping; renderer.toneMappingExposure=1
 renderer.shadowMap.enabled=true; renderer.shadowMap.type=THREE.PCFSoftShadowMap;
 renderer.shadowMap.autoUpdate=false;   // rafraîchi une image sur trois depuis la boucle
 document.body.appendChild(renderer.domElement);
+/* Un contexte WebGL perdu fige la dernière image sans lever d'erreur :
+   c'est indiscernable d'un plantage si on ne l'écoute pas. */
+renderer.domElement.addEventListener("webglcontextlost",function(e){
+  e.preventDefault();
+  oops("GPU","contexte WebGL perdu — le pilote graphique a redémarré. Rechargez la page.");
+},false);
+renderer.domElement.addEventListener("webglcontextrestored",function(){
+  oops("GPU","contexte rétabli — rechargez la page (F5).");
+},false);
 
 /* ---------- textures peintes ---------- */
 // carte de relief dérivée d'une carte de hauteur peinte : le pixel devient une normale
