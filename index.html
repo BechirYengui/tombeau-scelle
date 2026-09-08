@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; media-src 'self' blob: mediastream:; connect-src 'self' https://0.peerjs.com wss://0.peerjs.com wss://*.peerjs.com; object-src 'none'; base-uri 'none'; form-action 'none'; worker-src 'self' blob:">
 <style>html{color-scheme:dark}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
 <title>Le Tombeau Scellé</title>
 <meta name="description" content="Escape room 3D — jeu à deux avec voix.">
@@ -211,6 +212,9 @@ canvas{display:block;position:fixed;inset:0;touch-action:none}
 #gcode.on{display:flex}
 #gcode small{font-size:9px;font-weight:700;letter-spacing:.14em;color:var(--gold-deep);
   text-transform:uppercase}
+#fps{position:fixed;top:18px;right:150px;padding:8px 12px;font-size:11px;font-weight:700;
+  color:var(--faint);background:var(--surface);-webkit-backdrop-filter:var(--blur);
+  backdrop-filter:var(--blur);border:1px solid var(--edge);border-radius:99px}
 #coop{position:fixed;top:158px;left:18px;display:none;align-items:center;gap:8px;padding:8px 13px;
   font-size:11px;font-weight:600;color:var(--txt);background:var(--surface);
   -webkit-backdrop-filter:var(--blur);backdrop-filter:var(--blur);
@@ -282,6 +286,7 @@ canvas{display:block;position:fixed;inset:0;touch-action:none}
 <div id="hurt"></div>
 <div class="hud">
   <div id="bag"></div><div id="seals"></div>
+  <div id="fps">— ips</div>
   <div id="clock">20:00</div><div id="where">Antichambre</div>
   <div id="goal"></div>
   <div id="dot"></div><div id="tip"></div><div id="say"></div>
@@ -323,11 +328,14 @@ canvas{display:block;position:fixed;inset:0;touch-action:none}
   </div>
 </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.4/peerjs.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"
+  integrity="sha384-CI3ELBVUz9XQO+97x6nwMDPosPR5XvsxW2ua7N1Xeygeh1IxtgqtCkGfQY9WWdHu" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.4/peerjs.min.js"
+  integrity="sha384-nlUQ8ZqCbvStErob+biJNzSgltf6urV3VGqhfIfzhmg9RXmpeRm76ELw0pYnKlTR" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script>
 "use strict";
 (function(){
+/* ─────────── 01-boot.js ─────────── */
 var $=function(s){ return document.querySelector(s); };
 function halt(t,c){ $("#intro").innerHTML='<div style="max-width:44em"><div class="kicker">La dalle ne bouge pas</div><h1>'+t+'</h1><div id="fail">'+c+'</div></div>'; }
 if(!window.THREE){ halt("Moteur 3D absent","<p>three.js n’a pas pu être chargé. Vérifiez le réseau et rechargez.</p>"); return; }
@@ -339,11 +347,12 @@ var camera=new THREE.PerspectiveCamera(74, innerWidth/innerHeight, 0.05, 140);
 var renderer;
 try{ renderer=new THREE.WebGLRenderer({antialias:true, powerPreference:"high-performance"}); }
 catch(err){ halt("Pas de contexte 3D","<p>Le navigateur refuse la 3D. Fermez les autres onglets du jeu et rechargez, ou ouvrez la page dans Firefox.</p>"); throw err; }
-renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.setPixelRatio(Math.min(devicePixelRatio,1.75));   // au-delà, coût x1,3 pour un gain invisible
 renderer.setSize(innerWidth,innerHeight);
 renderer.outputEncoding=THREE.sRGBEncoding;
 renderer.toneMapping=THREE.ACESFilmicToneMapping; renderer.toneMappingExposure=1.06;
 renderer.shadowMap.enabled=true; renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+renderer.shadowMap.autoUpdate=false;   // rafraîchi une image sur trois depuis la boucle
 document.body.appendChild(renderer.domElement);
 
 /* ---------- textures peintes ---------- */
@@ -432,6 +441,7 @@ var matGold =new THREE.MeshStandardMaterial({color:0xe0b352, roughness:.3, metal
 var matDark =new THREE.MeshStandardMaterial({color:0x2a2118, roughness:.85});
 var matLapis=new THREE.MeshStandardMaterial({color:0x2f5488, roughness:.4, metalness:.4});
 
+/* ─────────── 02-world.js ─────────── */
 /* ============================================================
    LE LIEU
    ============================================================ */
@@ -481,6 +491,7 @@ var lampsA=[torch(wx(11),wz(23)),torch(wx(17),wz(26)),torch(wx(14),wz(21),3.5,12
 torch(wx(14),wz(15),7,26); torch(wx(11),wz(12),3,12); torch(wx(17),wz(18),3,12);
 torch(wx(14),wz(4),4.5,20); torch(wx(24),wz(15),4,18); torch(wx(3),wz(12),2.2,11);
 
+/* ─────────── 03-utils.js ─────────── */
 /* ============================================================
    OUTILS
    ============================================================ */
@@ -516,6 +527,7 @@ function show(html){ release(); panel=document.createElement("div"); panel.class
   var c=panel.querySelector(".close"); if(c) c.addEventListener("click",shut);
   panel.addEventListener("click",function(e){ if(e.target===panel) shut(); }); }
 
+/* ─────────── 04-room-antechamber.js ─────────── */
 /* ============================================================
    SALLE 1 · L'ANTICHAMBRE  (escape room)
    ============================================================ */
@@ -524,27 +536,48 @@ var AX=wx(14), AZ=wz(24.5);
 var rug=new THREE.Mesh(new THREE.PlaneGeometry(3.6,2.6),
   new THREE.MeshStandardMaterial({color:0x7a4a2a, roughness:.95}));
 rug.rotation.x=-Math.PI/2; rug.position.set(AX-0.6,0.012,AZ+0.6); rug.receiveShadow=true; scene.add(rug);
-var keyObj=new THREE.Group(); keyObj.position.set(AX-2.1,0.10,AZ+0.4); keyObj.visible=false;
-(function(){ var b=matGold;
-  var s=new THREE.Mesh(new THREE.CylinderGeometry(0.018,0.018,0.30,10),b); s.rotation.z=Math.PI/2; keyObj.add(s);
-  var o=new THREE.Mesh(new THREE.TorusGeometry(0.055,0.016,8,18),b); o.position.x=-0.18; o.rotation.y=Math.PI/2; keyObj.add(o);
-  keyObj.add(new THREE.Mesh(new THREE.BoxGeometry(0.02,0.055,0.045),b).translateX(0.12).translateY(-0.03));
-  keyObj.children.forEach(function(c){c.castShadow=true;}); });
+// La clé flotte, tourne et pose un halo au sol : posée à plat dans le noir,
+// elle ne se lisait pas comme un objet à ramasser.
+var keyObj=new THREE.Group(); keyObj.position.set(AX-2.1,0.46,AZ+0.4); keyObj.visible=false;
+(function(){
+  var b=new THREE.MeshStandardMaterial({color:0xe8b860,roughness:.26,metalness:.95,
+    emissive:0xe8b860,emissiveIntensity:.45,envMapIntensity:1.4});
+  var ring=new THREE.Mesh(new THREE.TorusGeometry(0.105,0.028,10,22), b);
+  ring.position.x=-0.20; ring.rotation.y=Math.PI/2; keyObj.add(ring);
+  var shaft=new THREE.Mesh(new THREE.CylinderGeometry(0.027,0.027,0.44,12), b);
+  shaft.rotation.z=Math.PI/2; shaft.position.x=0.02; keyObj.add(shaft);
+  var collar=new THREE.Mesh(new THREE.TorusGeometry(0.042,0.013,8,14), b);
+  collar.position.x=0.10; collar.rotation.y=Math.PI/2; keyObj.add(collar);
+  var t1=new THREE.Mesh(new THREE.BoxGeometry(0.030,0.115,0.026), b);
+  t1.position.set(0.175,-0.062,0); keyObj.add(t1);
+  var t2=new THREE.Mesh(new THREE.BoxGeometry(0.030,0.075,0.026), b);
+  t2.position.set(0.235,-0.042,0); keyObj.add(t2);
+  var t3=new THREE.Mesh(new THREE.BoxGeometry(0.026,0.048,0.026), b);
+  t3.position.set(0.115,-0.030,0); keyObj.add(t3);
+  keyObj.children.forEach(function(c){ c.castShadow=true; });
+})();
+var keyHalo=new THREE.Mesh(new THREE.CircleGeometry(0.55,24),
+  new THREE.MeshBasicMaterial({color:0xe8b860,transparent:true,opacity:0,
+    blending:THREE.AdditiveBlending,depthWrite:false}));
+keyHalo.rotation.x=-Math.PI/2; keyHalo.position.set(AX-2.1,0.02,AZ+0.4); scene.add(keyHalo);
 scene.add(keyObj);
-var keyGlow=new THREE.PointLight(0xffcf87,0,2.6,2); keyGlow.position.copy(keyObj.position).setY(0.3); scene.add(keyGlow);
-var keyHit=new THREE.Mesh(new THREE.BoxGeometry(0.6,0.4,0.5), new THREE.MeshBasicMaterial({visible:false}));
+var keyGlow=new THREE.PointLight(0xffcf87,0,3.4,2);
+keyGlow.position.set(AX-2.1,0.75,AZ+0.4); scene.add(keyGlow);
+var keyHit=new THREE.Mesh(new THREE.BoxGeometry(0.95,0.95,0.95), new THREE.MeshBasicMaterial({visible:false}));
 keyHit.position.copy(keyObj.position); keyHit.visible=false; scene.add(keyHit);
 act(keyHit,"la clé de bronze",function(){
   if(has("k1")) return;
   take("k1","⚿","la clé de bronze");
   keyObj.visible=false; keyHit.visible=false; keyGlow.intensity=0;
+  keyHalo.material.opacity=0;
   say("Une clé de bronze, verte d’âge.");
 });
 act(rug,"la natte de roseaux",function(){
   if(rug.userData.m){ say(has("k1")?"Le dallage est nu.":"La clé est toujours là, sur la pierre."); return; }
   rug.userData.m=1; rug.rotation.z=0.5; rug.position.x+=2.4;
-  keyObj.visible=true; keyHit.visible=true; keyGlow.intensity=2.6; ping(300,.25,.04);
-  say("La natte se replie vers la droite. Une lueur de bronze sur le dallage, à gauche.");
+  keyObj.visible=true; keyHit.visible=true; keyGlow.intensity=3.2;
+  keyHalo.material.opacity=0.16; ping(300,.25,.04);
+  say("La natte se replie vers la droite. Une clé de bronze flotte au-dessus du dallage, à gauche.");
 });
 
 // la table d'offrandes et son coffret
@@ -572,7 +605,8 @@ function openPap(){
     box(0.08,0.5,0.08, cx,1.45,cz, matDark);
     var f=new THREE.Mesh(new THREE.SphereGeometry(0.05,8,8), new THREE.MeshBasicMaterial({color:0xffd9a0}));
     f.position.set(cx,1.74,cz); scene.add(f);
-    var l=new THREE.PointLight(0xffb765,1.0,3.4,2); l.position.set(cx,1.8,cz); scene.add(l);
+    if(k===0){ var l=new THREE.PointLight(0xffb765,2.4,4.6,2);   // une lampe pour les trois flammes
+      l.position.set(AX-4.0,1.85,AZ+2.6); scene.add(l); }
   }
   act(base,"le trépied",function(){ say("Trois flammes. Elles n’ont pas faibli depuis des siècles."); });
 })();
@@ -753,6 +787,7 @@ act(seal,"la dalle scellée",function(){
   else say("Scellée. Il manque la clé — celle que garde la niche, derrière la stèle du mur ouest.");
 });
 
+/* ─────────── 05-room-shards.js ─────────── */
 /* ============================================================
    SALLE 2 · CHAMBRE NORD — LES ÉCLATS (anamorphose : un ankh)
    ============================================================ */
@@ -780,6 +815,7 @@ function anaScore(){
   return Math.max(0,Math.min(1, Math.max(0,1-d/2.5)*Math.max(0,(f.dot(GAZE)-0.94)/0.06)));
 }
 
+/* ─────────── 06-room-shadows.js ─────────── */
 /* ============================================================
    SALLE 3 · CHAMBRE OUEST — LES DEUX OMBRES
    ============================================================ */
@@ -841,6 +877,7 @@ function turn(dx,dy){
   if(solidG.quaternion.angleTo(new THREE.Quaternion())<0.08){ grabbed=false; grant(1); }
 }
 
+/* ─────────── 07-room-maze.js ─────────── */
 /* ============================================================
    SALLE 4 · CHAMBRE EST — LE PASSAGE INVISIBLE
    ============================================================ */
@@ -875,6 +912,7 @@ var PED=new THREE.Vector3(wx(27),0,wz(15));
   o.position.set(PED.x,1.6,PED.z); scene.add(o); window.__orb=o;
 })();
 
+/* ─────────── 08-seals.js ─────────── */
 /* ============================================================
    SCEAUX + SARCOPHAGE
    ============================================================ */
@@ -903,7 +941,7 @@ var sarc=new THREE.Group(); sarc.position.set(wx(14),0,wz(15)); scene.add(sarc);
 })();
 solid(sarc,0.15);
 
-
+/* ─────────── 09-viewmodel.js ─────────── */
 /* ============================================================
    LES MAINS  —  scène et caméra séparées : le modèle de vue ne
    peut alors traverser aucun mur, quelle que soit la distance.
@@ -1132,7 +1170,7 @@ function viewmodel(dt,moving){
   var fm=gun.userData.flash.material; fm.opacity += (0-fm.opacity)*Math.min(1,dt*17);
 }
 
-
+/* ─────────── 10-mummies.js ─────────── */
 /* ============================================================
    LES GARDIENS
    ============================================================ */
@@ -1148,28 +1186,33 @@ var texWrap=paint(256,256,function(g,w,h){
 var matWrap=new THREE.MeshStandardMaterial({map:texWrap, roughness:.93, metalness:.02,
   normalMap:nWrap, normalScale:new THREE.Vector2(1.15,1.15), envMapIntensity:.5});
 var mummies=[], hits=[];
+var GEO={};
+function gCyl(r1,r2,l,sg){ var k="c"+r1+r2+l+sg; return GEO[k]||(GEO[k]=new THREE.CylinderGeometry(r1,r2,l,sg)); }
+function gSph(r,a,b){ var k="s"+r+a+b; return GEO[k]||(GEO[k]=new THREE.SphereGeometry(r,a,b)); }
+function gPln(w,h){ var k="p"+w+h; return GEO[k]||(GEO[k]=new THREE.PlaneGeometry(w,h)); }
+function gBox(w,h,d){ var k="b"+w+h+d; return GEO[k]||(GEO[k]=new THREE.BoxGeometry(w,h,d)); }
 function limb(par,len,r1,r2,mat){
   var g=new THREE.Group(); par.add(g);
-  var c=new THREE.Mesh(new THREE.CylinderGeometry(r1,r2,len,9), mat);
+  var c=new THREE.Mesh(gCyl(r1,r2,len,9), mat);
   c.position.y=-len/2; c.castShadow=true; g.add(c);
-  var j=new THREE.Mesh(new THREE.SphereGeometry(r2*1.05,8,6), mat);
+  var j=new THREE.Mesh(gSph(r2*1.05,8,6), mat);
   j.position.y=-len; g.add(j);
   return g;
 }
 function Mummy(x,z){
   var g=new THREE.Group(); g.position.set(x,0,z); scene.add(g);
   // buste fuselé
-  var torso=new THREE.Mesh(new THREE.CylinderGeometry(0.20,0.26,0.80,12), matWrap);
+  var torso=new THREE.Mesh(gCyl(0.20,0.26,0.80,12), matWrap);
   torso.position.y=1.08; torso.castShadow=true; g.add(torso);
-  var hips=new THREE.Mesh(new THREE.SphereGeometry(0.23,10,8), matWrap);
+  var hips=new THREE.Mesh(gSph(0.23,10,8), matWrap);
   hips.position.y=0.72; hips.scale.set(1,.75,.9); g.add(hips);
   // crâne bandé, mâchoire noire entrouverte
-  var head=new THREE.Mesh(new THREE.SphereGeometry(0.165,12,10), matWrap);
+  var head=new THREE.Mesh(gSph(0.165,12,10), matWrap);
   head.position.set(0,1.63,0.01); head.scale.set(.92,1.10,1); head.castShadow=true; g.add(head);
-  var jaw=new THREE.Mesh(new THREE.SphereGeometry(0.10,9,7),
+  var jaw=new THREE.Mesh(gSph(0.10,9,7),
     new THREE.MeshStandardMaterial({color:0x120c05,roughness:1}));
   jaw.position.set(0,1.50,0.075); jaw.scale.set(.9,.55,.8); g.add(jaw);
-  var neck=new THREE.Mesh(new THREE.CylinderGeometry(0.075,0.095,0.14,9), matWrap);
+  var neck=new THREE.Mesh(gCyl(0.075,0.095,0.14,9), matWrap);
   neck.position.y=1.47; g.add(neck);
   // bras tendus vers l’avant
   var la=limb(g,0.34,0.075,0.062,matWrap); la.position.set(-0.245,1.36,0.02);
@@ -1185,14 +1228,14 @@ function Mummy(x,z){
   // bandelettes défaites qui pendent et flottent
   var rags=[];
   for(var q=0;q<7;q++){
-    var rg=new THREE.Mesh(new THREE.PlaneGeometry(0.055,0.30+Math.random()*0.26),
+    var rg=new THREE.Mesh(gPln(0.055,0.36),
       new THREE.MeshStandardMaterial({map:texWrap,roughness:1,side:THREE.DoubleSide,
         transparent:true,opacity:.93}));
     var an=Math.random()*6.2832;
     rg.position.set(Math.cos(an)*0.19, 0.80+Math.random()*0.60, Math.sin(an)*0.19);
-    rg.rotation.y=an; g.add(rg); rags.push(rg);
+    rg.rotation.y=an; rg.scale.y=0.8+Math.random()*0.7; g.add(rg); rags.push(rg);
   }
-  var hit=new THREE.Mesh(new THREE.BoxGeometry(0.78,1.95,0.78), new THREE.MeshBasicMaterial({visible:false}));
+  var hit=new THREE.Mesh(gBox(0.78,1.95,0.78), new THREE.MeshBasicMaterial({visible:false}));
   hit.position.y=0.97; g.add(hit); hit.userData.mummy=this;
   this.g=g; this.hit=hit; this.la=la; this.ra=ra; this.ll=ll; this.rl=rl; this.rags=rags;
   this.hp=3; this.dead=false; this.t=Math.random()*6; this.cool=0; this.fall=0; this.stagger=0;
@@ -1405,6 +1448,7 @@ function groan(at){
   ping(70+Math.random()*26,.85,g);
 }
 
+/* ─────────── 11-net.js ─────────── */
 /* ============================================================
    JEU À DEUX  —  capacité "room" : tous ceux qui ont la page ouverte
    ============================================================ */
@@ -1490,19 +1534,43 @@ function stat(t){
   var h=document.getElementById("nstat");
   if(h){ h.textContent=t; h.parentNode.classList.add("on"); }
 }
+/* --- tout ce qui arrive du reseau est hostile jusqu a preuve du contraire --- */
+var WMIN=-6, WMAX=GW*T+6;
+function num(v,lo,hi){ return (typeof v==="number"&&isFinite(v)&&v>=lo&&v<=hi)?v:null; }
+var HEX=/^#[0-9a-fA-F]{6}$/;
+function clean(v,max){                       // ni HTML, ni caracteres de controle
+  return String(v==null?"":v).replace(/[\u0000-\u001f\u007f-\u009f\u200b-\u200f\u2028\u2029\ufeff]/g,"").slice(0,max);
+}
+var flood={t:0,n:0}, chatF={t:0,n:0};
+function underRate(b,perSec){                // un pair ne peut pas noyer la boucle
+  var now=performance.now();
+  if(now-b.t>1000){ b.t=now; b.n=0; }
+  return (++b.n)<=perSec;
+}
 function netSend(o){ if(net.conn&&net.conn.open){ try{ net.conn.send(o); }catch(e){} } }
-function onPacket(d){
-  if(!d||typeof d!=="object") return;
+function onPacket(d,conn){
+  if(!underRate(flood,80)) return;                    // 80 paquets/s au plus
+  if(!d||typeof d!=="object"||Array.isArray(d)) return;
+  if(d.k==="hello"){                                  // poignée de main : le code doit correspondre
+    if(clean(d.code,12)===net.code) conn.__ok=true;
+    else { stat("Connexion refusée : code invalide."); try{ conn.close(); }catch(e){} }
+    return;
+  }
+  if(net.host && !conn.__ok) return;                  // rien n'est écouté avant la poignée de main
   if(d.k==="pos"){
+    var x=num(d.x,WMIN,WMAX), z=num(d.z,WMIN,WMAX), ry=num(d.y,-1e4,1e4);
+    if(x===null||z===null) return;                    // NaN, Infini, hors monde : rejeté
     if(!mate){
-      mate=makeAvatar(String(d.n||"Explorateur").slice(0,18), String(d.c||"#e8b860"));
+      mate=makeAvatar(clean(d.n,18)||"Explorateur", HEX.test(d.c)?d.c:"#e8b860");
       stat("Coéquipier visible dans le tombeau.");
     }
-    if(typeof d.x==="number"&&typeof d.z==="number") mate.position.set(d.x,0,d.z);
-    if(typeof d.y==="number") mate.rotation.y=d.y;
+    mate.position.set(x,0,z);
+    if(ry!==null) mate.rotation.y=ry;
     $("#coop").classList.add("on"); $("#coopn").textContent="2 explorateurs";
   } else if(d.k==="chat"){
-    chatLine(String(d.n||"?").slice(0,18), String(d.t||"").slice(0,120), false);
+    if(!underRate(chatF,2)) return;                   // deux messages par seconde au plus
+    var txt=clean(d.t,120); if(!txt) return;
+    chatLine(clean(d.n,18)||"?", txt, false);
   } else if(d.k==="shot"){ noise(0.16,900,0.045); }
 }
 function playRemote(stream){
@@ -1523,10 +1591,12 @@ function tryCall(){
 function wire(c){
   net.conn=c;
   c.on("open",function(){
+    if(!net.host) netSend({k:"hello",code:net.code});   // le visiteur prouve qu'il detient le code
+    else setTimeout(function(){ if(!c.__ok){ stat("Pair non identifié — rejeté."); try{c.close();}catch(e){} } },6000);
     stat("Coéquipier connecté" + (net.mic?" — ouverture de la voix…":" — activez le micro pour parler."));
     tryCall();
   });
-  c.on("data",onPacket);
+  c.on("data",function(d){ onPacket(d,c); });
   c.on("error",function(e){ stat("Erreur de liaison : "+(e&&e.type||e)); });
   c.on("close",function(){
     stat("Coéquipier déconnecté.");
@@ -1614,6 +1684,7 @@ function toggleMic(){
   },70);
 })();
 
+/* ─────────── 12-player.js ─────────── */
 /* ============================================================
    JOUEUR
    ============================================================ */
@@ -1700,9 +1771,9 @@ function scan(){
     var ob=h[q].object;
     if(ob.visible!==false && ob.userData.act){ aim=ob; break; }
   }
-  var t=$("#tip");
-  if(aim){ t.textContent="E · "+aim.userData.label; t.classList.add("on"); $("#dot").classList.add("hot"); }
-  else{ t.classList.remove("on"); $("#dot").classList.remove("hot"); }
+  var t=elTip;
+  if(aim){ t.textContent="E · "+aim.userData.label; t.classList.add("on"); elDot.classList.add("hot"); }
+  else{ t.classList.remove("on"); elDot.classList.remove("hot"); }
   var foe=false;
   if(hasGun && hits.length){
     shootRay.setFromCamera(ndc,camera); shootRay.far=45;
@@ -1710,7 +1781,7 @@ function scan(){
     var hh=shootRay.intersectObjects(tg,false);
     foe=!!(hh.length && hh[0].object.userData.mummy && !hh[0].object.userData.mummy.dead);
   }
-  $("#dot").classList.toggle("foe",foe);
+  elDot.classList.toggle("foe",foe);
 }
 function use(){ if(aim&&aim.userData.act) aim.userData.act(); }
 
@@ -1767,6 +1838,9 @@ function chrono(dt){
 
 /* ---------- boucle ---------- */
 var clk=new THREE.Clock();
+var elWhere=$("#where"), elGoal=$("#goal"), elTip=$("#tip"),
+    elDot=$("#dot"), elClock=$("#clock"), elFps=$("#fps");
+var fpsAcc=0, fpsN=0;
 function loop(){
   requestAnimationFrame(loop);
   var dt=Math.min(clk.getDelta(),0.05);
@@ -1782,7 +1856,12 @@ function loop(){
   for(var k=marks.length-1;k>=0;k--){ var a=(now-marks[k].t)/5200;
     if(a>=1){ scene.remove(marks[k]); marks.splice(k,1); } else marks[k].material.opacity=.5*(1-a); }
   if(!seals[2] && Math.hypot(camera.position.x-PED.x,camera.position.z-PED.z)<2.6) grant(2);
-  if(keyObj.visible) keyObj.rotation.y+=dt*0.55;
+  if(keyObj.visible){
+    keyObj.rotation.y+=dt*0.9;
+    keyObj.position.y=0.46+Math.sin(now*0.0021)*0.055;
+    keyHit.position.y=keyObj.position.y;
+    keyHalo.material.opacity=0.13+Math.sin(now*0.0021)*0.05;
+  }
   if(window.__orb){ window.__orb.rotation.y+=dt*0.8;
     var dp=Math.hypot(camera.position.x-PED.x,camera.position.z-PED.z);
     var nr=Math.max(0,Math.min(1,1-(dp-2.6)/9));
@@ -1817,9 +1896,12 @@ function loop(){
     if(reloading<=0){ reloading=0; mag=MAG; updAmmo(); ping(520,.09,.04); } }
   viewmodel(dt,moving);
 
-  $("#where").textContent=RN[room()];
-  if((fr&31)===0) $("#goal").textContent=goal();
+  elWhere.textContent=RN[room()];
+  if((fr&31)===0) elGoal.textContent=goal();
   chrono(dt);
+  if((fr%3)===0) renderer.shadowMap.needsUpdate=true;   // ombres : 20 Hz au lieu de 60
+  fpsAcc+=dt; fpsN++;
+  if(fpsAcc>=0.5){ elFps.textContent=Math.round(fpsN/fpsAcc)+" ips"; fpsAcc=0; fpsN=0; }
   renderer.clear();
   renderer.render(scene,camera);
   renderer.clearDepth();          // les mains ne peuvent traverser aucun mur

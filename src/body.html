@@ -1,0 +1,47 @@
+<div id="vig"></div>
+<div id="grain"></div>
+<div id="flash"></div>
+<div id="hurt"></div>
+<div class="hud">
+  <div id="bag"></div><div id="seals"></div>
+  <div id="fps">— ips</div>
+  <div id="clock">20:00</div><div id="where">Antichambre</div>
+  <div id="goal"></div>
+  <div id="dot"></div><div id="tip"></div><div id="say"></div>
+  <div id="gcode"><small>Code</small><span id="gcodev"></span></div>
+  <div id="nbox"><b>Liaison</b><span id="nstat"></span></div>
+  <div id="coop"><span class="dotlive"></span><span id="coopn">1 explorateur</span></div>
+  <div id="chat"><div id="log"></div><input id="msg" maxlength="120" autocomplete="off"
+    placeholder="Message à votre coéquipier — Entrée pour envoyer"></div>
+  <div id="vit"><div id="vitbar"><div id="vitfill"></div></div><div id="vitk">Souffle vital</div></div>
+  <div id="ammo"><b id="mag">12</b><i> / 12</i><div id="pips"></div><div id="ammok">Chargeur</div></div>
+  <div id="bar">
+    <span>ZQSD · marcher</span><span>Souris · regarder</span><span>E · examiner</span><span>Maj · courir</span><span>T · parler</span><span>Clic · tirer</span>
+    <button type="button" id="bHint">I · Indice</button>
+    <button type="button" id="bReset">R · Recommencer</button>
+  </div>
+</div>
+
+<div class="veil" id="intro">
+  <div>
+    <div class="kicker">Quatre salles · Trois sceaux · Vingt minutes</div>
+    <h1>Le Tombeau Scellé</h1>
+    <p>La dalle est retombée derrière vous. L’antichambre ne livre rien d’inutile : chaque objet sert, et la porte du fond ne s’ouvre qu’à qui sait compter. Au-delà, trois chambres gardent chacune un sceau — et aucune ne se résout en écrivant.</p>
+    <div class="keys">
+      <div><b>Z Q S D</b>marcher</div><div><b>Souris</b>regarder — sans cliquer</div><div><b>E</b>examiner</div>
+      <div><b>Clic</b>tirer</div>
+      <div><b>T</b>parler à deux</div>
+    </div>
+    <div id="lobby">
+      <div class="lrow">
+        <button class="alt" type="button" id="bHost">Créer une partie à deux</button>
+        <button class="alt" type="button" id="bJoin">Rejoindre une partie</button>
+        <button class="alt" type="button" id="bMic">🎙 Activer le micro</button>
+      </div>
+      <div id="lcode"></div>
+      <input id="jcode" placeholder="Code de la partie" maxlength="8" autocomplete="off">
+      <div id="lstat">Activez le micro d’abord, puis créez ou rejoignez une partie — vous entrez aussitôt.</div>
+    </div>
+    <button class="go" type="button" id="enter">Jouer seul</button>
+  </div>
+</div>

@@ -62,7 +62,7 @@ global.THREE = mk('THREE');
 global.location = { reload(){} };
 
 try {
-  require('./game.js');
+  require('../game.js');
   console.log('CHARGEMENT OK — aucune exception au démarrage');
 } catch (e) {
   console.log('EXCEPTION AU CHARGEMENT :');
