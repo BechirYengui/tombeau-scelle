@@ -1771,8 +1771,10 @@ function loop(){
   if(fpsAcc>=0.5){ elFps.textContent=Math.round(fpsN/fpsAcc)+" ips"; fpsAcc=0; fpsN=0; }
   renderer.clear();
   renderer.render(scene,camera);
-  renderer.clearDepth();          // les mains ne peuvent traverser aucun mur
-  renderer.render(vmScene,vmCam);
+  if(started){                     // pas de mains sur l'écran d'accueil
+    renderer.clearDepth();         // et elles ne traversent aucun mur
+    renderer.render(vmScene,vmCam);
+  }
 }
 loop();
 addEventListener("resize",function(){
@@ -1783,6 +1785,7 @@ addEventListener("resize",function(){
 
 function startGame(){
   if(started) return;
+  document.body.classList.add("playing");     // révèle l'interface et les mains
   camera.position.set(wx(14),EYE,wz(25)); yaw=0; pitch=0;   // fin du plan d’ouverture
   var iv=document.getElementById("intro"); if(iv) iv.remove();
   started=true; clk.getDelta(); grab(); ping(440,.3,.04);
