@@ -1661,7 +1661,7 @@ function makeAvatar(name,col){
   belt.position.y=0.90; g.add(belt);
   var buckle=new THREE.Mesh(new THREE.BoxGeometry(0.075,0.055,0.02), metal);
   buckle.position.set(0,0.90,0.17); g.add(buckle);
-  var shoul=new THREE.Mesh(new THREE.CapsuleGeometry?new THREE.CylinderGeometry(0.075,0.075,0.44,10):new THREE.CylinderGeometry(0.075,0.075,0.44,10), coat);
+  var shoul=new THREE.Mesh(new THREE.CylinderGeometry(0.075,0.075,0.44,10), coat);
   shoul.rotation.z=Math.PI/2; shoul.position.y=1.40; shoul.castShadow=true; g.add(shoul);
   // bras
   var la=seg(g,0.32,0.070,0.058,coat,-0.225,1.38,0), laf=seg(la,0.30,0.056,0.048,coat,0,-0.32,0);
