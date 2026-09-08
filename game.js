@@ -685,15 +685,15 @@ function makeHand(sign,curl){
   var wrist=new THREE.Mesh(new THREE.CylinderGeometry(0.040,0.047,0.16,12), skin);
   wrist.rotation.x=Math.PI/2; wrist.position.z=-0.055; g.add(wrist);
   for(var f=0;f<4;f++)
-    finger(g,(-0.036+f*0.024)*sign, -0.004-f*0.003, 0.100, curl, 1-f*0.07);
-  var th=finger(g,-0.052*sign,-0.010,0.045,curl*0.75,1.12);
-  th.rotation.set(0.25,0.95*sign,0);
+    finger(g,(0.036-f*0.024)*sign, -0.004-f*0.003, 0.100, curl, 1-f*0.07);
+  var th=finger(g,0.052*sign,-0.010,0.045,curl*0.75,1.12);
+  th.rotation.set(0.25,-0.95*sign,0);
   return g;
 }
 
 /* ---------- main gauche : la torche ---------- */
 var lHand=makeHand(-1,0.42); lHand.position.set(-0.31,-0.27,-0.50);
-lHand.rotation.set(0.30,0.34,0.18); rig.add(lHand);
+lHand.rotation.set(0.30,Math.PI+0.34,0.18); rig.add(lHand);
 (function(){
   var st=new THREE.Mesh(new THREE.CylinderGeometry(0.022,0.028,0.60,10), grip);
   st.rotation.x=Math.PI/2; st.position.set(0,0.02,0.24); lHand.add(st);
@@ -710,7 +710,7 @@ torchLight.position.set(-0.55,-0.15,0.1); camera.add(torchLight); scene.add(came
 
 /* ---------- main droite : le pistolet ---------- */
 var rHand=makeHand(1,0.95); rHand.position.set(0.27,-0.30,-0.46);
-rHand.rotation.set(0.16,-0.22,-0.10); rig.add(rHand);
+rHand.rotation.set(0.16,Math.PI-0.22,-0.10); rig.add(rHand);
 var gun=new THREE.Group(); gun.position.set(0.01,0.055,0.055); rHand.add(gun);
 (function(){
   // culasse : profil de côté, extrudé et biseauté
@@ -980,7 +980,7 @@ function shoot(){
   if(!hasGun||over||panel||reloading>0) return;
   if(mag<=0){ reloading=1.4; updAmmo(); ping(180,.12,.03); return; }
   mag--; updAmmo(); kick=1; slideBack=1; bang(); ejectShell();
-  if(coop) coop.emit("shot",{});
+  netSend({k:"shot"});
   muzzle.intensity=7; gun.userData.flash.material.opacity=0.95;
   shootRay.setFromCamera(new THREE.Vector2(0,0),camera); shootRay.far=60;
   var targets=hits.slice(); if(WALLS) targets.push(WALLS);
@@ -1121,7 +1121,7 @@ function chatLine(who,txt,mine){
   setTimeout(function(){ if(d.parentNode) d.parentNode.removeChild(d); },26000);
 }
 function openChat(){
-  if(!coop) { say("Personne d’autre n’est connecté à ce tombeau."); return; }
+  if(!net.conn) { say("Personne d’autre n’est connecté. Créez une partie depuis l’accueil."); return; }
   chatting=true; release();
   var m=$("#msg"); m.classList.add("on"); m.value=""; m.focus();
 }
@@ -1131,26 +1131,101 @@ $("#msg").addEventListener("keydown",function(e){
   if(e.key==="Escape"){ closeChat(); return; }
   if(e.key!=="Enter") return;
   var t=this.value.trim().slice(0,120);
-  if(t && coop){ coop.emit("chat",{t:t,n:myName}); }
+  if(t){ netSend({k:"chat",t:t,n:myName}); chatLine(myName,t,true); }
   closeChat();
 });
+/* ---------- réseau : PeerJS (annuaire) puis WebRTC pair-à-pair ---------- */
+var net={peer:null,conn:null,mic:null,mediaCall:null,code:null,host:false}, mate=null;
+var ALPHA="ABCDEFGHJKMNPQRSTUVWXYZ23456789";
+function newCode(){ var c=""; for(var i=0;i<6;i++) c+=ALPHA[(Math.random()*ALPHA.length)|0]; return c; }
+function stat(t){ var e=document.getElementById("lstat"); if(e) e.textContent=t; }
+function netSend(o){ if(net.conn&&net.conn.open){ try{ net.conn.send(o); }catch(e){} } }
+function onPacket(d){
+  if(!d||typeof d!=="object") return;
+  if(d.k==="pos"){
+    if(!mate) mate=makeAvatar(String(d.n||"Explorateur").slice(0,18), String(d.c||"#e8b860"));
+    if(typeof d.x==="number"&&typeof d.z==="number") mate.position.set(d.x,0,d.z);
+    if(typeof d.y==="number") mate.rotation.y=d.y;
+    var cb=$("#coop"); cb.classList.add("on"); $("#coopn").textContent="2 explorateurs";
+  } else if(d.k==="chat"){
+    chatLine(String(d.n||"?").slice(0,18), String(d.t||"").slice(0,120), false);
+  } else if(d.k==="shot"){ noise(0.16,900,0.045); }
+}
+function wire(c){
+  net.conn=c;
+  c.on("open",function(){ stat("Coéquipier connecté."); say("Un autre explorateur est entré dans le tombeau."); });
+  c.on("data",onPacket);
+  c.on("close",function(){
+    stat("Coéquipier déconnecté.");
+    if(mate){ scene.remove(mate); mate=null; }
+    $("#coop").classList.remove("on");
+  });
+}
+function playRemote(stream){
+  var a=document.createElement("audio");
+  a.autoplay=true; a.srcObject=stream; a.style.display="none";
+  document.body.appendChild(a);
+  stat("Voix connectée.");
+}
+function netHost(){
+  if(!window.Peer){ stat("PeerJS n’a pas pu être chargé."); return; }
+  net.host=true; net.code=newCode();
+  net.peer=new Peer("tombeau-"+net.code);
+  net.peer.on("open",function(){
+    var e=$("#lcode"); e.textContent=net.code; e.classList.add("on");
+    $("#gcodev").textContent=net.code; $("#gcode").classList.add("on");
+    stat("Code : "+net.code+" — transmettez-le à votre coéquipier.");
+  });
+  net.peer.on("connection",wire);
+  net.peer.on("call",function(c){ c.answer(net.mic||undefined); c.on("stream",playRemote); });
+  net.peer.on("error",function(e){ stat("Erreur réseau : "+e.type); });
+}
+function netJoin(){
+  if(!window.Peer){ stat("PeerJS n’a pas pu être chargé."); return; }
+  var code=($("#jcode").value||"").trim().toUpperCase();
+  if(code.length<4){ stat("Entrez le code reçu, puis appuyez sur Entrée."); return; }
+  net.peer=new Peer();
+  net.peer.on("open",function(){
+    wire(net.peer.connect("tombeau-"+code,{reliable:false}));
+    if(net.mic){ var c=net.peer.call("tombeau-"+code,net.mic); c.on("stream",playRemote); }
+    stat("Connexion à "+code+"…");
+  });
+  net.peer.on("call",function(c){ c.answer(net.mic||undefined); c.on("stream",playRemote); });
+  net.peer.on("error",function(e){ stat("Erreur réseau : "+e.type); });
+}
+function toggleMic(){
+  var b=$("#bMic");
+  if(net.mic){
+    net.mic.getTracks().forEach(function(t){ t.stop(); });
+    net.mic=null; b.classList.remove("live"); b.textContent="🎙 Activer le micro";
+    stat("Micro coupé."); return;
+  }
+  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){
+    stat("Ce navigateur ne donne pas accès au micro."); return;
+  }
+  navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true}})
+    .then(function(st){
+      net.mic=st; b.classList.add("live"); b.textContent="🎙 Micro actif";
+      stat("Micro actif. Il s’ouvrira vers votre coéquipier à la connexion.");
+      if(net.peer&&!net.host&&net.conn){
+        var c=net.peer.call(net.conn.peer,st); c.on("stream",playRemote);
+      }
+    })
+    .catch(function(err){ stat("Micro refusé : "+err.name+". Autorisez le micro pour ce site."); });
+}
 (function(){
-  if(!window.claude||typeof claude.use!=="function") return;
-  claude.use("room").then(function(r){
-    if(!r) return;
-    coop=r;
-    coop.onPeers(function(ch){ syncPeers(ch.peers); });
-    coop.on("chat",function(m){
-      var d=m.data;
-      if(d&&typeof d.t==="string") chatLine(String(d.n||"?").slice(0,18), d.t.slice(0,120), m.isMe);
-    });
-    coop.on("shot",function(m){ if(!m.isMe) noise(0.16,900,0.045); });
-    setInterval(function(){
-      if(!started||!coop) return;
-      coop.presence({x:+camera.position.x.toFixed(2), z:+camera.position.z.toFixed(2),
-        y:+yaw.toFixed(2), n:myName, c:myCol, hp:hp});
-    },70);
-  }).catch(function(){});
+  var h=$("#bHost"), j=$("#bJoin"), m=$("#bMic"), jc=$("#jcode");
+  if(!h) return;
+  h.addEventListener("click",function(){ jc.classList.remove("on"); netHost(); startGame(); });
+  j.addEventListener("click",function(){ jc.classList.add("on"); jc.focus();
+    stat("Entrez le code de la partie, puis Entrée."); });
+  jc.addEventListener("keydown",function(e){ if(e.key==="Enter"){ netJoin(); startGame(); } });
+  m.addEventListener("click",toggleMic);
+  setInterval(function(){
+    if(!started) return;
+    netSend({k:"pos",x:+camera.position.x.toFixed(2),z:+camera.position.z.toFixed(2),
+      y:+yaw.toFixed(2),n:myName,c:myCol});
+  },70);
 })();
 
 /* ============================================================
@@ -1371,17 +1446,20 @@ addEventListener("resize",function(){
   renderer.setSize(innerWidth,innerHeight);
 });
 
-$("#enter").addEventListener("click",function(){
-  $("#intro").remove(); started=true; clk.getDelta(); grab(); ping(440,.3,.04);
+function startGame(){
+  if(started) return;
+  var iv=document.getElementById("intro"); if(iv) iv.remove();
+  started=true; clk.getDelta(); grab(); ping(440,.3,.04);
   hasGun=true; updAmmo(); ambience();
   setTimeout(function(){ $("#bar").classList.add("faded"); },12000);
-  $("#ammo").classList.add("on"); $("#vit").classList.add("on");
   new Mummy(wx(11),   wz(22.5));
   new Mummy(wx(18),   wz(27.0));
   new Mummy(wx(11.5), wz(27.5));
   groan(camera.position);
   say("La dalle est retombée. Vingt minutes — et vous n’êtes pas seul ici.");
-});
+}
+$("#enter").addEventListener("click",startGame);
+
 function end(k,t,b){
   over=true; release();
   var v=document.createElement("div"); v.className="veil";

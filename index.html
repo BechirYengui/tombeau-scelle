@@ -197,7 +197,14 @@ canvas{display:block;position:fixed;inset:0;touch-action:none}
   color:var(--faint);margin-top:8px}
 #fail{max-width:40em;color:var(--dim);font-size:13.5px;line-height:1.8}
 
-#coop{position:fixed;top:118px;left:18px;display:none;align-items:center;gap:8px;padding:8px 13px;
+#gcode{position:fixed;top:118px;left:18px;display:none;align-items:center;gap:9px;padding:8px 14px;
+  font-size:12px;font-weight:800;letter-spacing:.22em;color:var(--gold-2);
+  background:rgba(232,184,96,.10);-webkit-backdrop-filter:var(--blur);backdrop-filter:var(--blur);
+  border:1px solid rgba(232,184,96,.34);border-radius:99px}
+#gcode.on{display:flex}
+#gcode small{font-size:9px;font-weight:700;letter-spacing:.14em;color:var(--gold-deep);
+  text-transform:uppercase}
+#coop{position:fixed;top:158px;left:18px;display:none;align-items:center;gap:8px;padding:8px 13px;
   font-size:11px;font-weight:600;color:var(--txt);background:var(--surface);
   -webkit-backdrop-filter:var(--blur);backdrop-filter:var(--blur);
   border:1px solid var(--edge);border-radius:99px}
@@ -271,6 +278,7 @@ canvas{display:block;position:fixed;inset:0;touch-action:none}
   <div id="clock">20:00</div><div id="where">Antichambre</div>
   <div id="goal"></div>
   <div id="dot"></div><div id="tip"></div><div id="say"></div>
+  <div id="gcode"><small>Code</small><span id="gcodev"></span></div>
   <div id="coop"><span class="dotlive"></span><span id="coopn">1 explorateur</span></div>
   <div id="chat"><div id="log"></div><input id="msg" maxlength="120" autocomplete="off"
     placeholder="Message à votre coéquipier — Entrée pour envoyer"></div>
@@ -296,14 +304,14 @@ canvas{display:block;position:fixed;inset:0;touch-action:none}
     <div id="lobby">
       <div class="lrow">
         <button class="alt" type="button" id="bHost">Créer une partie à deux</button>
-        <button class="alt" type="button" id="bJoin">Rejoindre</button>
+        <button class="alt" type="button" id="bJoin">Rejoindre une partie</button>
         <button class="alt" type="button" id="bMic">🎙 Activer le micro</button>
       </div>
       <div id="lcode"></div>
       <input id="jcode" placeholder="Code de la partie" maxlength="8" autocomplete="off">
-      <div id="lstat">Partie solo — ou créez une partie pour jouer à deux avec la voix.</div>
+      <div id="lstat">Activez le micro d’abord, puis créez ou rejoignez une partie — vous entrez aussitôt.</div>
     </div>
-    <button class="go" type="button" id="enter">Descendre</button>
+    <button class="go" type="button" id="enter">Jouer seul</button>
   </div>
 </div>
 
@@ -997,15 +1005,15 @@ function makeHand(sign,curl){
   var wrist=new THREE.Mesh(new THREE.CylinderGeometry(0.040,0.047,0.16,12), skin);
   wrist.rotation.x=Math.PI/2; wrist.position.z=-0.055; g.add(wrist);
   for(var f=0;f<4;f++)
-    finger(g,(-0.036+f*0.024)*sign, -0.004-f*0.003, 0.100, curl, 1-f*0.07);
-  var th=finger(g,-0.052*sign,-0.010,0.045,curl*0.75,1.12);
-  th.rotation.set(0.25,0.95*sign,0);
+    finger(g,(0.036-f*0.024)*sign, -0.004-f*0.003, 0.100, curl, 1-f*0.07);
+  var th=finger(g,0.052*sign,-0.010,0.045,curl*0.75,1.12);
+  th.rotation.set(0.25,-0.95*sign,0);
   return g;
 }
 
 /* ---------- main gauche : la torche ---------- */
 var lHand=makeHand(-1,0.42); lHand.position.set(-0.31,-0.27,-0.50);
-lHand.rotation.set(0.30,0.34,0.18); rig.add(lHand);
+lHand.rotation.set(0.30,Math.PI+0.34,0.18); rig.add(lHand);
 (function(){
   var st=new THREE.Mesh(new THREE.CylinderGeometry(0.022,0.028,0.60,10), grip);
   st.rotation.x=Math.PI/2; st.position.set(0,0.02,0.24); lHand.add(st);
@@ -1022,7 +1030,7 @@ torchLight.position.set(-0.55,-0.15,0.1); camera.add(torchLight); scene.add(came
 
 /* ---------- main droite : le pistolet ---------- */
 var rHand=makeHand(1,0.95); rHand.position.set(0.27,-0.30,-0.46);
-rHand.rotation.set(0.16,-0.22,-0.10); rig.add(rHand);
+rHand.rotation.set(0.16,Math.PI-0.22,-0.10); rig.add(rHand);
 var gun=new THREE.Group(); gun.position.set(0.01,0.055,0.055); rHand.add(gun);
 (function(){
   // culasse : profil de côté, extrudé et biseauté
@@ -1485,7 +1493,8 @@ function netHost(){
   net.peer=new Peer("tombeau-"+net.code);
   net.peer.on("open",function(){
     var e=$("#lcode"); e.textContent=net.code; e.classList.add("on");
-    stat("Transmettez ce code à votre coéquipier, puis descendez.");
+    $("#gcodev").textContent=net.code; $("#gcode").classList.add("on");
+    stat("Code : "+net.code+" — transmettez-le à votre coéquipier.");
   });
   net.peer.on("connection",wire);
   net.peer.on("call",function(c){ c.answer(net.mic||undefined); c.on("stream",playRemote); });
@@ -1527,10 +1536,10 @@ function toggleMic(){
 (function(){
   var h=$("#bHost"), j=$("#bJoin"), m=$("#bMic"), jc=$("#jcode");
   if(!h) return;
-  h.addEventListener("click",function(){ jc.classList.remove("on"); netHost(); });
+  h.addEventListener("click",function(){ jc.classList.remove("on"); netHost(); startGame(); });
   j.addEventListener("click",function(){ jc.classList.add("on"); jc.focus();
     stat("Entrez le code de la partie, puis Entrée."); });
-  jc.addEventListener("keydown",function(e){ if(e.key==="Enter") netJoin(); });
+  jc.addEventListener("keydown",function(e){ if(e.key==="Enter"){ netJoin(); startGame(); } });
   m.addEventListener("click",toggleMic);
   setInterval(function(){
     if(!started) return;
@@ -1757,17 +1766,20 @@ addEventListener("resize",function(){
   renderer.setSize(innerWidth,innerHeight);
 });
 
-$("#enter").addEventListener("click",function(){
-  $("#intro").remove(); started=true; clk.getDelta(); grab(); ping(440,.3,.04);
+function startGame(){
+  if(started) return;
+  var iv=document.getElementById("intro"); if(iv) iv.remove();
+  started=true; clk.getDelta(); grab(); ping(440,.3,.04);
   hasGun=true; updAmmo(); ambience();
   setTimeout(function(){ $("#bar").classList.add("faded"); },12000);
-  $("#ammo").classList.add("on"); $("#vit").classList.add("on");
   new Mummy(wx(11),   wz(22.5));
   new Mummy(wx(18),   wz(27.0));
   new Mummy(wx(11.5), wz(27.5));
   groan(camera.position);
   say("La dalle est retombée. Vingt minutes — et vous n’êtes pas seul ici.");
-});
+}
+$("#enter").addEventListener("click",startGame);
+
 function end(k,t,b){
   over=true; release();
   var v=document.createElement("div"); v.className="veil";
