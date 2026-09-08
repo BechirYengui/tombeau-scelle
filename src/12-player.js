@@ -32,6 +32,7 @@ window.addEventListener("keydown",function(e){
   if(e.code==="KeyE") use();
   if(e.code==="KeyI") hint();
   if(e.code==="KeyT") openChat();
+  if(e.code==="KeyM" && typeof toggleMic==="function") toggleMic();
   if(e.code==="KeyR") askReset();
   if(["ArrowUp","ArrowDown","ArrowLeft","ArrowRight","Space"].indexOf(e.code)>=0) e.preventDefault();
 });

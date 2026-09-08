@@ -206,34 +206,58 @@ function netJoin(){
   armEnter("Descendre dans le tombeau");
   return true;
 }
+function micUI(){
+  var on=!!net.mic;
+  var b=document.getElementById("bMic");
+  if(b){ b.classList.toggle("live",on); b.textContent=on?"🎙 Micro actif":"🎙 Activer le micro"; }
+  var h=document.getElementById("micind");
+  if(h){ h.classList.add("on"); h.classList.toggle("live",on);
+         h.textContent=on?"🎙 Micro actif":"🔇 Micro coupé — cliquez ou M"; }
+}
+// Demandee des qu une partie s ouvre : le joueur n a pas a y penser.
+function askMic(){ if(!net.mic) toggleMic(); else micUI(); }
 function toggleMic(){
   var b=$("#bMic");
   if(net.mic){
     net.mic.getTracks().forEach(function(t){ t.stop(); });
-    net.mic=null; b.classList.remove("live"); b.textContent="🎙 Activer le micro";
-    stat("Micro coupé."); return;
+    net.mic=null; micUI();
+    stat("Micro coupé. Cliquez l’indicateur ou pressez M pour le rouvrir."); return;
   }
   if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){
     stat("Micro indisponible : la page doit être servie en HTTPS."); return;
   }
   navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}})
     .then(function(st){
-      net.mic=st; b.classList.add("live"); b.textContent="🎙 Micro actif";
+      net.mic=st; micUI();
+      st.getAudioTracks().forEach(function(t){        // le navigateur ou l’OS peut le couper
+        t.onended=function(){ net.mic=null; micUI(); stat("Micro perdu. Pressez M pour le rouvrir."); };
+      });
       stat(net.conn?"Micro actif — ouverture de la voix…":"Micro actif. Créez ou rejoignez une partie.");
       tryCall();
     })
-    .catch(function(err){ stat("Micro refusé ("+err.name+"). Autorisez-le dans la barre d’adresse."); });
+    .catch(function(err){
+      micUI();
+      stat(err.name==="NotAllowedError"
+        ? "Micro refusé. Cliquez le cadenas 🔒 à gauche de l’adresse, autorisez le microphone, puis pressez M."
+        : (err.name==="NotFoundError" ? "Aucun micro détecté sur cet ordinateur."
+                                      : "Micro indisponible ("+err.name+")."));
+    });
 }
 (function(){
   var h=$("#bHost"), j=$("#bJoin"), m=$("#bMic"), jc=$("#jcode");
   if(!h) return;
-  h.addEventListener("click",function(){ jc.classList.remove("on"); netHost(); });
+  h.addEventListener("click",function(){ jc.classList.remove("on"); askMic(); netHost(); });
   j.addEventListener("click",function(){
     jc.classList.add("on"); jc.focus();
     stat("Entrez les 6 lettres du code, puis Entrée.");
   });
-  jc.addEventListener("keydown",function(e){ if(e.key==="Enter") netJoin(); });
+  jc.addEventListener("keydown",function(e){ if(e.key==="Enter"){ askMic(); netJoin(); } });
   m.addEventListener("click",toggleMic);
+  var ind=document.getElementById("micind");
+  if(ind) ind.addEventListener("click",toggleMic);
+  document.getElementById("enter").addEventListener("click",function(){
+    if(net.peer && !net.mic) askMic();          // dernier rappel avant de descendre
+  });
   setInterval(function(){
     if(!started) return;
     netSend({k:"pos",x:+camera.position.x.toFixed(2),z:+camera.position.z.toFixed(2),

@@ -206,6 +206,13 @@ canvas{display:block;position:fixed;inset:0;touch-action:none}
   -webkit-backdrop-filter:var(--blur);backdrop-filter:var(--blur);
   border:1px solid var(--edge);border-radius:var(--r-sm)}
 #nbox.on{display:block}
+#micind{position:fixed;top:158px;right:18px;display:none;padding:9px 15px;font:inherit;
+  font-size:11px;font-weight:700;color:var(--bad);background:var(--surface);
+  -webkit-backdrop-filter:var(--blur);backdrop-filter:var(--blur);
+  border:1px solid rgba(224,85,63,.4);border-radius:99px;cursor:pointer;transition:.2s}
+#micind.on{display:block}
+#micind.live{color:var(--good);border-color:rgba(143,201,138,.45)}
+#micind:hover{transform:translateY(-2px)}
 #nbox b{display:block;font-size:8.5px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;
   color:var(--gold-deep);margin-bottom:3px}
 #gcode{position:fixed;top:118px;left:18px;display:none;align-items:center;gap:9px;padding:8px 14px;
@@ -295,13 +302,14 @@ canvas{display:block;position:fixed;inset:0;touch-action:none}
   <div id="dot"></div><div id="tip"></div><div id="say"></div>
   <div id="gcode"><small>Code</small><span id="gcodev"></span></div>
   <div id="nbox"><b>Liaison</b><span id="nstat"></span></div>
+  <button id="micind" type="button"></button>
   <div id="coop"><span class="dotlive"></span><span id="coopn">1 explorateur</span></div>
   <div id="chat"><div id="log"></div><input id="msg" maxlength="120" autocomplete="off"
     placeholder="Message à votre coéquipier — Entrée pour envoyer"></div>
   <div id="vit"><div id="vitbar"><div id="vitfill"></div></div><div id="vitk">Souffle vital</div></div>
   <div id="ammo"><b id="mag">12</b><i> / 12</i><div id="pips"></div><div id="ammok">Chargeur</div></div>
   <div id="bar">
-    <span>ZQSD · marcher</span><span>Souris · regarder</span><span>E · examiner</span><span>Maj · courir</span><span>T · parler</span><span>Clic · tirer</span>
+    <span>ZQSD · marcher</span><span>Souris · regarder</span><span>E · examiner</span><span>Maj · courir</span><span>T · écrire</span><span>M · micro</span><span>Clic · tirer</span>
     <button type="button" id="bHint">I · Indice</button>
     <button type="button" id="bReset">R · Recommencer</button>
   </div>
@@ -1660,34 +1668,58 @@ function netJoin(){
   armEnter("Descendre dans le tombeau");
   return true;
 }
+function micUI(){
+  var on=!!net.mic;
+  var b=document.getElementById("bMic");
+  if(b){ b.classList.toggle("live",on); b.textContent=on?"🎙 Micro actif":"🎙 Activer le micro"; }
+  var h=document.getElementById("micind");
+  if(h){ h.classList.add("on"); h.classList.toggle("live",on);
+         h.textContent=on?"🎙 Micro actif":"🔇 Micro coupé — cliquez ou M"; }
+}
+// Demandee des qu une partie s ouvre : le joueur n a pas a y penser.
+function askMic(){ if(!net.mic) toggleMic(); else micUI(); }
 function toggleMic(){
   var b=$("#bMic");
   if(net.mic){
     net.mic.getTracks().forEach(function(t){ t.stop(); });
-    net.mic=null; b.classList.remove("live"); b.textContent="🎙 Activer le micro";
-    stat("Micro coupé."); return;
+    net.mic=null; micUI();
+    stat("Micro coupé. Cliquez l’indicateur ou pressez M pour le rouvrir."); return;
   }
   if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){
     stat("Micro indisponible : la page doit être servie en HTTPS."); return;
   }
   navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}})
     .then(function(st){
-      net.mic=st; b.classList.add("live"); b.textContent="🎙 Micro actif";
+      net.mic=st; micUI();
+      st.getAudioTracks().forEach(function(t){        // le navigateur ou l’OS peut le couper
+        t.onended=function(){ net.mic=null; micUI(); stat("Micro perdu. Pressez M pour le rouvrir."); };
+      });
       stat(net.conn?"Micro actif — ouverture de la voix…":"Micro actif. Créez ou rejoignez une partie.");
       tryCall();
     })
-    .catch(function(err){ stat("Micro refusé ("+err.name+"). Autorisez-le dans la barre d’adresse."); });
+    .catch(function(err){
+      micUI();
+      stat(err.name==="NotAllowedError"
+        ? "Micro refusé. Cliquez le cadenas 🔒 à gauche de l’adresse, autorisez le microphone, puis pressez M."
+        : (err.name==="NotFoundError" ? "Aucun micro détecté sur cet ordinateur."
+                                      : "Micro indisponible ("+err.name+")."));
+    });
 }
 (function(){
   var h=$("#bHost"), j=$("#bJoin"), m=$("#bMic"), jc=$("#jcode");
   if(!h) return;
-  h.addEventListener("click",function(){ jc.classList.remove("on"); netHost(); });
+  h.addEventListener("click",function(){ jc.classList.remove("on"); askMic(); netHost(); });
   j.addEventListener("click",function(){
     jc.classList.add("on"); jc.focus();
     stat("Entrez les 6 lettres du code, puis Entrée.");
   });
-  jc.addEventListener("keydown",function(e){ if(e.key==="Enter") netJoin(); });
+  jc.addEventListener("keydown",function(e){ if(e.key==="Enter"){ askMic(); netJoin(); } });
   m.addEventListener("click",toggleMic);
+  var ind=document.getElementById("micind");
+  if(ind) ind.addEventListener("click",toggleMic);
+  document.getElementById("enter").addEventListener("click",function(){
+    if(net.peer && !net.mic) askMic();          // dernier rappel avant de descendre
+  });
   setInterval(function(){
     if(!started) return;
     netSend({k:"pos",x:+camera.position.x.toFixed(2),z:+camera.position.z.toFixed(2),
@@ -1730,6 +1762,7 @@ window.addEventListener("keydown",function(e){
   if(e.code==="KeyE") use();
   if(e.code==="KeyI") hint();
   if(e.code==="KeyT") openChat();
+  if(e.code==="KeyM" && typeof toggleMic==="function") toggleMic();
   if(e.code==="KeyR") askReset();
   if(["ArrowUp","ArrowDown","ArrowLeft","ArrowRight","Space"].indexOf(e.code)>=0) e.preventDefault();
 });

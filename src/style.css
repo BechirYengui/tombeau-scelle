@@ -192,6 +192,13 @@ canvas{display:block;position:fixed;inset:0;touch-action:none}
   -webkit-backdrop-filter:var(--blur);backdrop-filter:var(--blur);
   border:1px solid var(--edge);border-radius:var(--r-sm)}
 #nbox.on{display:block}
+#micind{position:fixed;top:158px;right:18px;display:none;padding:9px 15px;font:inherit;
+  font-size:11px;font-weight:700;color:var(--bad);background:var(--surface);
+  -webkit-backdrop-filter:var(--blur);backdrop-filter:var(--blur);
+  border:1px solid rgba(224,85,63,.4);border-radius:99px;cursor:pointer;transition:.2s}
+#micind.on{display:block}
+#micind.live{color:var(--good);border-color:rgba(143,201,138,.45)}
+#micind:hover{transform:translateY(-2px)}
 #nbox b{display:block;font-size:8.5px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;
   color:var(--gold-deep);margin-bottom:3px}
 #gcode{position:fixed;top:118px;left:18px;display:none;align-items:center;gap:9px;padding:8px 14px;
