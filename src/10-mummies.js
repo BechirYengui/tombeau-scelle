@@ -12,6 +12,8 @@ var texWrap=paint(256,256,function(g,w,h){
 });
 var matWrap=new THREE.MeshStandardMaterial({map:texWrap, roughness:.93, metalness:.02,
   normalMap:nWrap, normalScale:new THREE.Vector2(1.15,1.15), envMapIntensity:.5});
+var ragMat=new THREE.MeshStandardMaterial({map:texWrap,roughness:1,side:THREE.DoubleSide,
+  transparent:true,opacity:.93,envMapIntensity:.4});   // partagé : 7 par gardien auparavant
 var mummies=[], hits=[];
 var GEO={};
 function gCyl(r1,r2,l,sg){ var k="c"+r1+r2+l+sg; return GEO[k]||(GEO[k]=new THREE.CylinderGeometry(r1,r2,l,sg)); }
@@ -55,9 +57,7 @@ function Mummy(x,z){
   // bandelettes défaites qui pendent et flottent
   var rags=[];
   for(var q=0;q<7;q++){
-    var rg=new THREE.Mesh(gPln(0.055,0.36),
-      new THREE.MeshStandardMaterial({map:texWrap,roughness:1,side:THREE.DoubleSide,
-        transparent:true,opacity:.93}));
+    var rg=new THREE.Mesh(gPln(0.055,0.36), ragMat);
     var an=Math.random()*6.2832;
     rg.position.set(Math.cos(an)*0.19, 0.80+Math.random()*0.60, Math.sin(an)*0.19);
     rg.rotation.y=an; rg.scale.y=0.8+Math.random()*0.7; g.add(rg); rags.push(rg);
@@ -183,19 +183,23 @@ function dust(at,n){
 var MAG=12, mag=MAG, res=48, RESMAX=120, reloading=0, shootRay=new THREE.Raycaster();
 /* --- caisses de cartouches : sans réserve finie, tirer n'a aucun coût --- */
 var crates=[];
+var crateWood=new THREE.MeshStandardMaterial({color:0x4a3a22,roughness:.9,envMapIntensity:.3});
+var crateBrass=new THREE.MeshStandardMaterial({color:0xc9a227,roughness:.3,metalness:1,
+  emissive:0xc9a227,emissiveIntensity:.55,envMapIntensity:1.4});   // brille sans lampe
+var crateBoxG=new THREE.BoxGeometry(0.42,0.26,0.30);
+var crateBandG=new THREE.BoxGeometry(0.44,0.05,0.32);
+var crateRndG=new THREE.CylinderGeometry(0.021,0.021,0.09,8);
 function ammoCrate(x,z){
   var g=new THREE.Group(); g.position.set(x,0,z); scene.add(g);
-  var w=new THREE.Mesh(new THREE.BoxGeometry(0.42,0.26,0.30),
-    new THREE.MeshStandardMaterial({color:0x4a3a22,roughness:.9,envMapIntensity:.3}));
+  var w=new THREE.Mesh(crateBoxG, crateWood);
   w.position.y=0.13; w.castShadow=true; g.add(w);
-  var band=new THREE.Mesh(new THREE.BoxGeometry(0.44,0.05,0.32), brass);
+  var band=new THREE.Mesh(crateBandG, crateBrass);
   band.position.y=0.20; g.add(band);
   for(var i=0;i<4;i++){                       // cartouches qui dépassent
-    var c=new THREE.Mesh(new THREE.CylinderGeometry(0.021,0.021,0.09,8), brass);
+    var c=new THREE.Mesh(crateRndG, crateBrass);
     c.position.set(-0.10+i*0.068,0.29,0); g.add(c);
   }
-  var l=new THREE.PointLight(0xffcf87,1.1,2.6,2); l.position.set(x,0.6,z); scene.add(l);
-  var o={g:g,l:l,x:x,z:z,ready:true,t:0};
+  var o={g:g,l:{intensity:0},x:x,z:z,ready:true,t:0};   // plus de lampe : l’émissif suffit
   crates.push(o); return o;
 }
 function stepCrates(dt){
