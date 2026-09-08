@@ -206,6 +206,7 @@ function loop(){
   }
   motes.position.y=Math.sin(now*0.00016)*0.4;
   stepShells(dt); footsteps(dt); ambientGroans(dt);
+  if(typeof stepMate==='function') stepMate(dt);
   if(reloading>0){ reloading-=dt;
     if(reloading<=0){ reloading=0; mag=MAG; updAmmo(); ping(520,.09,.04); } }
   viewmodel(dt,moving);

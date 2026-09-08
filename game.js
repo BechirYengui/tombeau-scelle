@@ -1132,20 +1132,84 @@ function nameTag(txt,col){
 }
 function makeAvatar(name,col){
   var g=new THREE.Group(), c=new THREE.Color(col);
-  var coat=new THREE.Mesh(new THREE.CylinderGeometry(0.21,0.31,1.05,10),
-    new THREE.MeshStandardMaterial({color:0x2c2418,roughness:.92}));
-  coat.position.y=0.60; coat.castShadow=true; g.add(coat);
-  var head=new THREE.Mesh(new THREE.SphereGeometry(0.145,10,8),
-    new THREE.MeshStandardMaterial({color:0xcb9a72,roughness:.7}));
-  head.position.y=1.28; g.add(head);
-  var hat=new THREE.Mesh(new THREE.CylinderGeometry(0.29,0.29,0.035,14),
-    new THREE.MeshStandardMaterial({color:0x3a2c1a,roughness:.95}));
-  hat.position.y=1.40; g.add(hat);
-  var fl=new THREE.Mesh(new THREE.SphereGeometry(0.065,8,8),
-    new THREE.MeshBasicMaterial({color:c})); fl.position.set(0.30,1.02,0.16); g.add(fl);
-  var lt=new THREE.PointLight(c.getHex(),3.4,10,2); lt.position.set(0.30,1.12,0.16); g.add(lt);
-  var tg=nameTag(name,col); tg.position.y=1.86; g.add(tg);
+  var coat =new THREE.MeshStandardMaterial({color:0x37301f,roughness:.92,envMapIntensity:.3});
+  var dark =new THREE.MeshStandardMaterial({color:0x241d13,roughness:.95});
+  var flesh=new THREE.MeshStandardMaterial({color:0xc79a72,roughness:.7});
+  var metal=new THREE.MeshStandardMaterial({color:0xb8933f,roughness:.35,metalness:.9,envMapIntensity:1.2});
+  function seg(par,len,r1,r2,mat,x,y,z){
+    var q=new THREE.Group(); q.position.set(x,y,z); par.add(q);
+    var m=new THREE.Mesh(new THREE.CylinderGeometry(r1,r2,len,9), mat);
+    m.position.y=-len/2; m.castShadow=true; q.add(m);
+    var j=new THREE.Mesh(new THREE.SphereGeometry(r2,8,6), mat); j.position.y=-len; q.add(j);
+    return q;
+  }
+  // jambes
+  var ll=seg(g,0.44,0.088,0.070,dark,-0.115,0.86,0), llf=seg(ll,0.42,0.068,0.060,dark,0,-0.44,0);
+  var rl=seg(g,0.44,0.088,0.070,dark, 0.115,0.86,0), rlf=seg(rl,0.42,0.068,0.060,dark,0,-0.44,0);
+  [llf,rlf].forEach(function(f){
+    var boot=new THREE.Mesh(new THREE.BoxGeometry(0.13,0.09,0.24), dark);
+    boot.position.set(0,-0.44,0.05); boot.castShadow=true; f.add(boot);
+  });
+  // buste, ceinture, épaules
+  var torso=new THREE.Mesh(new THREE.CylinderGeometry(0.205,0.165,0.56,12), coat);
+  torso.position.y=1.16; torso.castShadow=true; g.add(torso);
+  var belt=new THREE.Mesh(new THREE.CylinderGeometry(0.172,0.172,0.07,12), dark);
+  belt.position.y=0.90; g.add(belt);
+  var buckle=new THREE.Mesh(new THREE.BoxGeometry(0.075,0.055,0.02), metal);
+  buckle.position.set(0,0.90,0.17); g.add(buckle);
+  var shoul=new THREE.Mesh(new THREE.CapsuleGeometry?new THREE.CylinderGeometry(0.075,0.075,0.44,10):new THREE.CylinderGeometry(0.075,0.075,0.44,10), coat);
+  shoul.rotation.z=Math.PI/2; shoul.position.y=1.40; shoul.castShadow=true; g.add(shoul);
+  // bras
+  var la=seg(g,0.32,0.070,0.058,coat,-0.225,1.38,0), laf=seg(la,0.30,0.056,0.048,coat,0,-0.32,0);
+  var ra=seg(g,0.32,0.070,0.058,coat, 0.225,1.38,0), raf=seg(ra,0.30,0.056,0.048,coat,0,-0.32,0);
+  [laf,raf].forEach(function(f){
+    var h=new THREE.Mesh(new THREE.SphereGeometry(0.052,8,6), flesh);
+    h.position.y=-0.30; h.scale.set(1,1.15,.8); f.add(h);
+  });
+  la.rotation.x=0.12; ra.rotation.x=-0.55; raf.rotation.x=-0.75;   // le bras droit tient la lanterne
+  // cou, tête, foulard
+  var neck=new THREE.Mesh(new THREE.CylinderGeometry(0.058,0.070,0.10,9), flesh);
+  neck.position.y=1.47; g.add(neck);
+  var head=new THREE.Mesh(new THREE.SphereGeometry(0.135,14,11), flesh);
+  head.position.y=1.60; head.scale.set(.92,1.08,.98); head.castShadow=true; g.add(head);
+  var scarf=new THREE.Mesh(new THREE.TorusGeometry(0.085,0.036,7,14), new THREE.MeshStandardMaterial({color:c,roughness:.9}));
+  scarf.rotation.x=Math.PI/2; scarf.position.y=1.475; g.add(scarf);
+  // chapeau à large bord
+  var brim=new THREE.Mesh(new THREE.CylinderGeometry(0.255,0.275,0.022,18), dark);
+  brim.position.y=1.695; brim.castShadow=true; g.add(brim);
+  var crown=new THREE.Mesh(new THREE.CylinderGeometry(0.128,0.145,0.155,14), dark);
+  crown.position.y=1.775; crown.castShadow=true; g.add(crown);
+  var band=new THREE.Mesh(new THREE.TorusGeometry(0.140,0.017,6,16), new THREE.MeshStandardMaterial({color:c,roughness:.85}));
+  band.rotation.x=Math.PI/2; band.position.y=1.712; g.add(band);
+  // besace
+  var bag=new THREE.Mesh(new THREE.BoxGeometry(0.20,0.17,0.11), dark);
+  bag.position.set(-0.20,1.00,-0.06); bag.rotation.z=0.18; bag.castShadow=true; g.add(bag);
+  // lanterne dans la main droite, avec sa vraie lumière
+  var lant=new THREE.Group(); lant.position.set(0.30,0.98,0.22); g.add(lant);
+  lant.add(new THREE.Mesh(new THREE.TorusGeometry(0.045,0.008,6,12), metal));
+  var cage=new THREE.Mesh(new THREE.CylinderGeometry(0.055,0.062,0.14,8), metal);
+  cage.position.y=-0.10; lant.add(cage);
+  var fl=new THREE.Mesh(new THREE.SphereGeometry(0.040,9,9), new THREE.MeshBasicMaterial({color:c}));
+  fl.position.y=-0.10; lant.add(fl);
+  var lt=new THREE.PointLight(c.getHex(),3.6,11,2); lt.position.set(0.30,0.90,0.22); g.add(lt);
+  var tg=nameTag(name,col); tg.position.y=2.10; g.add(tg);
+  g.userData={ll:ll,rl:rl,la:la,ra:ra,lant:lant,fl:fl,t:0,px:0,pz:0,spd:0};
   scene.add(g); return g;
+}
+// la démarche : sans elle l’explorateur glisse au sol comme un carton
+function stepMate(dt){
+  if(!mate) return;
+  var u=mate.userData;
+  var d=Math.hypot(mate.position.x-u.px, mate.position.z-u.pz);
+  u.px=mate.position.x; u.pz=mate.position.z;
+  u.spd += (Math.min(1,d/(dt*3.4))-u.spd)*Math.min(1,dt*7);
+  u.t += dt*(2.2+u.spd*8.5);
+  var sw=Math.sin(u.t)*0.42*u.spd;
+  u.ll.rotation.x= sw; u.rl.rotation.x=-sw;
+  u.la.rotation.x=0.12-sw*0.55;
+  mate.position.y=Math.abs(Math.sin(u.t))*0.035*u.spd;
+  u.lant.rotation.z=Math.sin(u.t*0.9)*0.22*(0.3+u.spd);
+  u.fl.scale.setScalar(0.85+Math.sin(performance.now()*0.012)*0.18);
 }
 function syncPeers(list){
   var seen={}, n=0;
@@ -1191,7 +1255,8 @@ $("#msg").addEventListener("keydown",function(e){
 /* ---------- réseau : PeerJS (annuaire) puis WebRTC pair-à-pair ----------
    Tout état est affiché à l’écran : une connexion qui échoue en silence
    est impossible à diagnostiquer pour le joueur.                        */
-var net={peer:null,conn:null,mic:null,code:null,host:false,voice:false}, mate=null;
+var net={peer:null,conn:null,mic:null,code:null,host:false,voice:false,
+         called:false,needCall:false}, mate=null;
 var ALPHA="ABCDEFGHJKMNPQRSTUVWXYZ23456789";
 function newCode(){ var c=""; for(var i=0;i<6;i++) c+=ALPHA[(Math.random()*ALPHA.length)|0]; return c; }
 function stat(t){
@@ -1242,19 +1307,51 @@ function onPacket(d,conn){
     chatLine(clean(d.n,18)||"?", txt, false);
   } else if(d.k==="shot"){ noise(0.16,900,0.045); }
 }
+/* --- vumetres : une voix qui ne passe pas doit se VOIR, pas se deviner --- */
+var vuA=null, vuB=null, vuCtx=null;
+function meter(stream,which){
+  try{
+    if(!vuCtx) vuCtx=new (window.AudioContext||window.webkitAudioContext)();
+    if(vuCtx.state==="suspended") vuCtx.resume();
+    var src=vuCtx.createMediaStreamSource(stream);
+    var an=vuCtx.createAnalyser(); an.fftSize=256; an.smoothingTimeConstant=0.75;
+    src.connect(an);
+    var buf=new Uint8Array(an.frequencyBinCount);
+    var bar=document.getElementById(which);
+    (function tick(){
+      an.getByteFrequencyData(buf);
+      var sum=0; for(var i=0;i<buf.length;i++) sum+=buf[i];
+      var lvl=Math.min(100,(sum/buf.length)*2.6);
+      if(bar) bar.style.width=lvl.toFixed(0)+"%";
+      requestAnimationFrame(tick);
+    })();
+    if(which==="vuMe") vuA=an; else vuB=an;
+  }catch(e){}
+}
 function playRemote(stream){
-  var a=document.createElement("audio");
-  a.autoplay=true; a.playsInline=true; a.srcObject=stream; a.style.display="none";
-  document.body.appendChild(a);
-  a.play().catch(function(){});
+  var a=document.getElementById("remoteAudio");
+  if(!a){
+    a=document.createElement("audio"); a.id="remoteAudio";
+    a.style.cssText="position:fixed;width:1px;height:1px;opacity:0;pointer-events:none";
+    document.body.appendChild(a);
+  }
+  a.autoplay=true; a.playsInline=true; a.volume=1; a.srcObject=stream;
+  a.play().catch(function(){ stat("Le navigateur bloque le son : cliquez une fois dans la page."); });
+  meter(stream,"vuThem");
+  var vb=document.getElementById("vubox"); if(vb) vb.classList.add("on");
   net.voice=true; stat("Voix connectée — vous vous entendez.");
 }
 // on appelle dès qu’on a À LA FOIS une connexion et un micro, quel que soit le côté
+// Un seul sens d'appel. Quand les deux cotes appelaient, les deux flux
+// entraient en collision et le son ne passait ni dans un sens ni dans l'autre.
 function tryCall(){
   if(!net.peer||!net.conn||!net.mic) return;
+  if(net.host && !net.needCall) return;      // l'hote se contente de repondre
+  if(net.called) return;
   try{
     var c=net.peer.call(net.conn.peer, net.mic);
-    if(c) c.on("stream",playRemote);
+    if(c){ net.called=true; c.on("stream",playRemote);
+           c.on("close",function(){ net.called=false; }); }
   }catch(e){}
 }
 function wire(c){
@@ -1280,6 +1377,7 @@ function attachPeer(){
   net.peer.on("call",function(c){
     c.answer(net.mic||undefined);          // on répond même sans micro : on écoute
     c.on("stream",playRemote);
+    if(!net.mic) net.needCall=true;        // sans micro à cet instant, on rappellera
   });
   net.peer.on("disconnected",function(){ stat("Annuaire perdu — tentative de reconnexion…");
     try{ net.peer.reconnect(); }catch(e){} });
@@ -1348,6 +1446,9 @@ function toggleMic(){
       st.getAudioTracks().forEach(function(t){        // le navigateur ou l’OS peut le couper
         t.onended=function(){ net.mic=null; micUI(); stat("Micro perdu. Pressez M pour le rouvrir."); };
       });
+      meter(st,"vuMe");
+      var vb=document.getElementById("vubox"); if(vb) vb.classList.add("on");
+      if(net.host && net.conn) net.needCall=true;   // l'hôte n'avait pas de micro à la réponse
       stat(net.conn?"Micro actif — ouverture de la voix…":"Micro actif. Créez ou rejoignez une partie.");
       tryCall();
     })
@@ -1590,6 +1691,7 @@ function loop(){
   }
   motes.position.y=Math.sin(now*0.00016)*0.4;
   stepShells(dt); footsteps(dt); ambientGroans(dt);
+  if(typeof stepMate==='function') stepMate(dt);
   if(reloading>0){ reloading-=dt;
     if(reloading<=0){ reloading=0; mag=MAG; updAmmo(); ping(520,.09,.04); } }
   viewmodel(dt,moving);
