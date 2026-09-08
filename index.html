@@ -197,6 +197,13 @@ canvas{display:block;position:fixed;inset:0;touch-action:none}
   color:var(--faint);margin-top:8px}
 #fail{max-width:40em;color:var(--dim);font-size:13.5px;line-height:1.8}
 
+#nbox{position:fixed;top:198px;left:18px;display:none;max-width:min(300px,44vw);padding:9px 13px;
+  font-size:11.5px;font-weight:600;line-height:1.4;color:var(--txt);background:var(--surface);
+  -webkit-backdrop-filter:var(--blur);backdrop-filter:var(--blur);
+  border:1px solid var(--edge);border-radius:var(--r-sm)}
+#nbox.on{display:block}
+#nbox b{display:block;font-size:8.5px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--gold-deep);margin-bottom:3px}
 #gcode{position:fixed;top:118px;left:18px;display:none;align-items:center;gap:9px;padding:8px 14px;
   font-size:12px;font-weight:800;letter-spacing:.22em;color:var(--gold-2);
   background:rgba(232,184,96,.10);-webkit-backdrop-filter:var(--blur);backdrop-filter:var(--blur);
@@ -279,6 +286,7 @@ canvas{display:block;position:fixed;inset:0;touch-action:none}
   <div id="goal"></div>
   <div id="dot"></div><div id="tip"></div><div id="say"></div>
   <div id="gcode"><small>Code</small><span id="gcodev"></span></div>
+  <div id="nbox"><b>Liaison</b><span id="nstat"></span></div>
   <div id="coop"><span class="dotlive"></span><span id="coopn">1 explorateur</span></div>
   <div id="chat"><div id="log"></div><input id="msg" maxlength="120" autocomplete="off"
     placeholder="Message à votre coéquipier — Entrée pour envoyer"></div>
@@ -979,82 +987,99 @@ function slab(pts, thick, bev, mat){
   g.center();
   return new THREE.Mesh(g,mat);
 }
+/* ------------------------------------------------------------------
+   Repère : la caméra regarde -Z. TOUT est donc construit vers -Z,
+   sans aucune rotation de rattrapage — c'est elle qui miroitait
+   les inclinaisons et cassait les poignets.
+   ------------------------------------------------------------------ */
 function bone(par,len,r1,r2,mat){
   var m=new THREE.Mesh(new THREE.CylinderGeometry(r1,r2,len,10), mat);
-  m.rotation.x=Math.PI/2; m.position.z=len/2; par.add(m);
-  var j=new THREE.Mesh(new THREE.SphereGeometry(r2,8,7), mat); j.position.z=len; par.add(j);
+  m.rotation.x=-Math.PI/2; m.position.z=-len/2; par.add(m);
+  var j=new THREE.Mesh(new THREE.SphereGeometry(r2,8,7), mat); j.position.z=-len; par.add(j);
   return m;
 }
-// un doigt : trois phalanges articulées, refermées sur la crosse
-function finger(par,x,y,z,curl,scale){
+function finger(par,x,y,z,curl,sc){
   var g1=new THREE.Group(); g1.position.set(x,y,z); par.add(g1);
-  bone(g1,0.052*scale,0.0125*scale,0.0115*scale,skin);
-  var g2=new THREE.Group(); g2.position.z=0.052*scale; g2.rotation.x=curl; g1.add(g2);
-  bone(g2,0.036*scale,0.0115*scale,0.0105*scale,skin);
-  var g3=new THREE.Group(); g3.position.z=0.036*scale; g3.rotation.x=curl*0.85; g2.add(g3);
-  bone(g3,0.026*scale,0.0105*scale,0.0092*scale,skin);
-  var n=new THREE.Mesh(new THREE.SphereGeometry(0.0085*scale,7,6), nail);
-  n.position.set(0,0.006*scale,0.020*scale); n.scale.set(1,.5,1.4); g3.add(n);
+  bone(g1,0.052*sc,0.0125*sc,0.0115*sc,skin);
+  var g2=new THREE.Group(); g2.position.z=-0.052*sc; g2.rotation.x=-curl; g1.add(g2);
+  bone(g2,0.036*sc,0.0115*sc,0.0105*sc,skin);
+  var g3=new THREE.Group(); g3.position.z=-0.036*sc; g3.rotation.x=-curl*0.85; g2.add(g3);
+  bone(g3,0.026*sc,0.0105*sc,0.0092*sc,skin);
+  var n=new THREE.Mesh(new THREE.SphereGeometry(0.0085*sc,7,6), nail);
+  n.position.set(0,0.007*sc,-0.021*sc); n.scale.set(1,.5,1.4); g3.add(n);
   return g1;
 }
+var cloth=new THREE.MeshStandardMaterial({color:0x3d3120,roughness:.95,envMapIntensity:.25});
+var leathr=new THREE.MeshStandardMaterial({color:0x54402a,roughness:.85,envMapIntensity:.35});
 function makeHand(sign,curl){
   var g=new THREE.Group();
   var palm=slab([[-0.050,-0.062],[0.050,-0.062],[0.058,0.030],[0.040,0.068],
                  [-0.040,0.068],[-0.058,0.030]], 0.038, 0.010, skin);
-  palm.rotation.x=Math.PI/2; palm.position.set(0,0,0.055); g.add(palm);
-  var wrist=new THREE.Mesh(new THREE.CylinderGeometry(0.040,0.047,0.16,12), skin);
-  wrist.rotation.x=Math.PI/2; wrist.position.z=-0.055; g.add(wrist);
+  palm.rotation.x=-Math.PI/2; palm.position.set(0,0,-0.055); g.add(palm);
+  // l’avant-bras manquait : la main flottait, détachée du corps
+  var wrist=new THREE.Mesh(new THREE.CylinderGeometry(0.042,0.048,0.09,12), skin);
+  wrist.rotation.x=Math.PI/2; wrist.position.z=0.035; g.add(wrist);
+  var cuff=new THREE.Mesh(new THREE.CylinderGeometry(0.064,0.058,0.09,12), leathr);
+  cuff.rotation.x=Math.PI/2; cuff.position.z=0.105; g.add(cuff);
+  var fore=new THREE.Mesh(new THREE.CylinderGeometry(0.068,0.082,0.52,12), cloth);
+  fore.rotation.x=Math.PI/2; fore.position.z=0.40; g.add(fore);
   for(var f=0;f<4;f++)
-    finger(g,(0.036-f*0.024)*sign, -0.004-f*0.003, 0.100, curl, 1-f*0.07);
-  var th=finger(g,0.052*sign,-0.010,0.045,curl*0.75,1.12);
-  th.rotation.set(0.25,-0.95*sign,0);
+    finger(g,(-0.036+f*0.024)*sign, -0.004-f*0.003, -0.100, curl, 1-f*0.07);
+  var th=finger(g,-0.052*sign,-0.012,-0.042,curl*0.70,1.12);
+  th.rotation.set(0.22,0.50*sign,0);
   return g;
 }
 
 /* ---------- main gauche : la torche ---------- */
-var lHand=makeHand(-1,0.42); lHand.position.set(-0.31,-0.27,-0.50);
-lHand.rotation.set(0.30,Math.PI+0.34,0.18); rig.add(lHand);
+var lHand=makeHand(-1,0.55); lHand.position.set(-0.30,-0.26,-0.48);
+lHand.rotation.set(0.26,0.30,0.16); rig.add(lHand);
 (function(){
-  var st=new THREE.Mesh(new THREE.CylinderGeometry(0.022,0.028,0.60,10), grip);
-  st.rotation.x=Math.PI/2; st.position.set(0,0.02,0.24); lHand.add(st);
-  var wr=new THREE.Mesh(new THREE.CylinderGeometry(0.055,0.040,0.17,10),
+  var st=new THREE.Mesh(new THREE.CylinderGeometry(0.024,0.030,0.58,10), leathr);
+  st.rotation.x=Math.PI/2; st.position.set(0,0.01,-0.22); lHand.add(st);
+  var wr=new THREE.Mesh(new THREE.CylinderGeometry(0.056,0.040,0.16,10),
     new THREE.MeshStandardMaterial({color:0x6a5535,roughness:.98}));
-  wr.rotation.x=Math.PI/2; wr.position.set(0,0.03,0.55); lHand.add(wr);
+  wr.rotation.x=Math.PI/2; wr.position.set(0,0.03,-0.50); lHand.add(wr);
   var fl=new THREE.Mesh(new THREE.SphereGeometry(0.072,10,10),
-    new THREE.MeshBasicMaterial({color:0xffd08a,transparent:true,opacity:.92}));
-  fl.position.set(0,0.075,0.63); fl.scale.set(1,1.5,1); lHand.add(fl);
+    new THREE.MeshBasicMaterial({color:0xffd08a,transparent:true,opacity:.94}));
+  fl.position.set(0,0.09,-0.60); fl.scale.set(1,1.5,1); lHand.add(fl);
   lHand.userData.flame=fl;
 })();
 var torchLight=new THREE.PointLight(0xffb265, 7.5, 16, 2);
-torchLight.position.set(-0.55,-0.15,0.1); camera.add(torchLight); scene.add(camera);
+torchLight.position.set(-0.55,-0.15,-0.3); camera.add(torchLight); scene.add(camera);
 
-/* ---------- main droite : le pistolet ---------- */
-var rHand=makeHand(1,0.95); rHand.position.set(0.27,-0.30,-0.46);
-rHand.rotation.set(0.16,Math.PI-0.22,-0.10); rig.add(rHand);
-var gun=new THREE.Group(); gun.position.set(0.01,0.055,0.055); rHand.add(gun);
+/* ---------- main droite : le pistolet ----------
+   Les profils sont dessinés de PROFIL : X vers l’avant, Y vers le haut,
+   Z = épaisseur. Le groupe entier pivote ensuite pour que X devienne -Z.
+   slab() recentre chaque géométrie sur zéro : chaque pièce est donc
+   replacée à son propre centre, calculé depuis ses points.           */
+var rHand=makeHand(1,1.05); rHand.position.set(0.28,-0.29,-0.46);
+rHand.rotation.set(0.14,-0.20,-0.08); rig.add(rHand);
+var gun=new THREE.Group(); gun.position.set(0.010,0.052,-0.050); rHand.add(gun);
+var body=new THREE.Group(); body.rotation.y=Math.PI/2; gun.add(body);
 (function(){
-  // culasse : profil de côté, extrudé et biseauté
   var slide=slab([[-0.115,0.012],[0.125,0.012],[0.125,0.062],[0.108,0.070],
                   [-0.100,0.070],[-0.115,0.058]], 0.052, 0.005, steel);
-  slide.position.set(0,0.042,0.005); gun.add(slide); gun.userData.slide=slide;
-  // carcasse et crosse inclinée
-  var frame=slab([[-0.100,-0.004],[0.070,-0.004],[0.070,0.014],[-0.100,0.014]], 0.050, 0.004, steel2);
-  frame.position.set(0,0.005,0.005); gun.add(frame);
-  var gp=slab([[-0.028,-0.150],[0.030,-0.120],[0.040,0.006],[-0.040,0.006]], 0.046, 0.006, grip);
-  gp.position.set(0,-0.075,-0.052); gp.rotation.x=0.10; gun.add(gp);
-  // pontet
-  var tg=new THREE.Mesh(new THREE.TorusGeometry(0.030,0.0065,7,14,Math.PI*1.15),
-    steel2); tg.position.set(0,-0.030,0.020); tg.rotation.set(0,Math.PI/2,-0.5); gun.add(tg);
-  var tr=new THREE.Mesh(new THREE.BoxGeometry(0.010,0.030,0.008), steel2);
-  tr.position.set(0,-0.018,0.012); gun.add(tr);
-  // canon, guidon, hausse
-  var br=new THREE.Mesh(new THREE.CylinderGeometry(0.0105,0.0105,0.030,12), steel);
-  br.rotation.x=Math.PI/2; br.position.set(0,0.042,0.132); gun.add(br);
-  part(gun,0.007,0.010,0.010, 0,0.077,0.115, steel2);
-  part(gun,0.020,0.009,0.008, 0,0.077,-0.095, steel2);
-  var fl2=new THREE.Mesh(new THREE.ConeGeometry(0.075,0.19,9),
+  slide.position.set(0.005,0.041,0); body.add(slide); gun.userData.slide=slide;
+  var frame=slab([[-0.100,-0.006],[0.072,-0.006],[0.072,0.014],[-0.100,0.014]], 0.050, 0.004, steel2);
+  frame.position.set(-0.014,0.004,0); body.add(frame);
+  var gp=slab([[-0.030,-0.150],[0.032,-0.120],[0.042,0.004],[-0.042,0.004]], 0.046, 0.006, grip);
+  gp.position.set(0,-0.073,0); body.add(gp);
+  var tg=new THREE.Mesh(new THREE.TorusGeometry(0.030,0.0062,7,16,Math.PI*1.2), steel2);
+  tg.position.set(0.018,-0.030,0); tg.rotation.z=-0.55; body.add(tg);
+  var tr=new THREE.Mesh(new THREE.BoxGeometry(0.009,0.030,0.010), steel2);
+  tr.position.set(0.012,-0.018,0); body.add(tr);
+  var br=new THREE.Mesh(new THREE.CylinderGeometry(0.0102,0.0102,0.028,12), steel);
+  br.rotation.z=Math.PI/2; br.position.set(0.136,0.042,0); body.add(br);
+  var hole=new THREE.Mesh(new THREE.CylinderGeometry(0.0062,0.0062,0.030,10),
+    new THREE.MeshBasicMaterial({color:0x05060a}));
+  hole.rotation.z=Math.PI/2; hole.position.set(0.140,0.042,0); body.add(hole);
+  var fs=new THREE.Mesh(new THREE.BoxGeometry(0.008,0.011,0.008), steel2);
+  fs.position.set(0.112,0.076,0); body.add(fs);
+  var rs=new THREE.Mesh(new THREE.BoxGeometry(0.014,0.010,0.030), steel2);
+  rs.position.set(-0.092,0.076,0); body.add(rs);
+  var fl2=new THREE.Mesh(new THREE.ConeGeometry(0.072,0.19,9),
     new THREE.MeshBasicMaterial({color:0xffeab4,transparent:true,opacity:0}));
-  fl2.rotation.x=Math.PI/2; fl2.position.set(0,0.042,0.20); gun.add(fl2);
+  fl2.rotation.z=-Math.PI/2; fl2.position.set(0.24,0.042,0); body.add(fl2);
   gun.userData.flash=fl2;
 })();
 var muzzle=new THREE.PointLight(0xffe0a0,0,10,2); muzzle.position.set(0.35,-0.1,-0.75); camera.add(muzzle);
@@ -1098,7 +1123,7 @@ function viewmodel(dt,moving){
   sway.y += (0-sway.y)*Math.min(1,dt*5.5);
   // recul de culasse
   slideBack += (0-slideBack)*Math.min(1,dt*16);
-  if(gun.userData.slide) gun.userData.slide.position.z=0.005-slideBack*0.045;
+  if(gun.userData.slide) gun.userData.slide.position.x=0.005-slideBack*0.042;
   var f=lHand.userData.flame;
   var t=performance.now();
   f.scale.set(0.9+Math.sin(t*0.013)*0.14, 1.5+Math.sin(t*0.021)*0.22, 0.9+Math.cos(t*0.017)*0.14);
@@ -1454,64 +1479,105 @@ $("#msg").addEventListener("keydown",function(e){
   if(t){ netSend({k:"chat",t:t,n:myName}); chatLine(myName,t,true); }
   closeChat();
 });
-/* ---------- réseau : PeerJS (annuaire) puis WebRTC pair-à-pair ---------- */
-var net={peer:null,conn:null,mic:null,mediaCall:null,code:null,host:false}, mate=null;
+/* ---------- réseau : PeerJS (annuaire) puis WebRTC pair-à-pair ----------
+   Tout état est affiché à l’écran : une connexion qui échoue en silence
+   est impossible à diagnostiquer pour le joueur.                        */
+var net={peer:null,conn:null,mic:null,code:null,host:false,voice:false}, mate=null;
 var ALPHA="ABCDEFGHJKMNPQRSTUVWXYZ23456789";
 function newCode(){ var c=""; for(var i=0;i<6;i++) c+=ALPHA[(Math.random()*ALPHA.length)|0]; return c; }
-function stat(t){ var e=document.getElementById("lstat"); if(e) e.textContent=t; }
+function stat(t){
+  var e=document.getElementById("lstat"); if(e) e.textContent=t;
+  var h=document.getElementById("nstat");
+  if(h){ h.textContent=t; h.parentNode.classList.add("on"); }
+}
 function netSend(o){ if(net.conn&&net.conn.open){ try{ net.conn.send(o); }catch(e){} } }
 function onPacket(d){
   if(!d||typeof d!=="object") return;
   if(d.k==="pos"){
-    if(!mate) mate=makeAvatar(String(d.n||"Explorateur").slice(0,18), String(d.c||"#e8b860"));
+    if(!mate){
+      mate=makeAvatar(String(d.n||"Explorateur").slice(0,18), String(d.c||"#e8b860"));
+      stat("Coéquipier visible dans le tombeau.");
+    }
     if(typeof d.x==="number"&&typeof d.z==="number") mate.position.set(d.x,0,d.z);
     if(typeof d.y==="number") mate.rotation.y=d.y;
-    var cb=$("#coop"); cb.classList.add("on"); $("#coopn").textContent="2 explorateurs";
+    $("#coop").classList.add("on"); $("#coopn").textContent="2 explorateurs";
   } else if(d.k==="chat"){
     chatLine(String(d.n||"?").slice(0,18), String(d.t||"").slice(0,120), false);
   } else if(d.k==="shot"){ noise(0.16,900,0.045); }
 }
+function playRemote(stream){
+  var a=document.createElement("audio");
+  a.autoplay=true; a.playsInline=true; a.srcObject=stream; a.style.display="none";
+  document.body.appendChild(a);
+  a.play().catch(function(){});
+  net.voice=true; stat("Voix connectée — vous vous entendez.");
+}
+// on appelle dès qu’on a À LA FOIS une connexion et un micro, quel que soit le côté
+function tryCall(){
+  if(!net.peer||!net.conn||!net.mic) return;
+  try{
+    var c=net.peer.call(net.conn.peer, net.mic);
+    if(c) c.on("stream",playRemote);
+  }catch(e){}
+}
 function wire(c){
   net.conn=c;
-  c.on("open",function(){ stat("Coéquipier connecté."); say("Un autre explorateur est entré dans le tombeau."); });
+  c.on("open",function(){
+    stat("Coéquipier connecté" + (net.mic?" — ouverture de la voix…":" — activez le micro pour parler."));
+    tryCall();
+  });
   c.on("data",onPacket);
+  c.on("error",function(e){ stat("Erreur de liaison : "+(e&&e.type||e)); });
   c.on("close",function(){
     stat("Coéquipier déconnecté.");
     if(mate){ scene.remove(mate); mate=null; }
-    $("#coop").classList.remove("on");
+    $("#coop").classList.remove("on"); net.conn=null;
   });
 }
-function playRemote(stream){
-  var a=document.createElement("audio");
-  a.autoplay=true; a.srcObject=stream; a.style.display="none";
-  document.body.appendChild(a);
-  stat("Voix connectée.");
+function attachPeer(){
+  net.peer.on("connection",wire);
+  net.peer.on("call",function(c){
+    c.answer(net.mic||undefined);          // on répond même sans micro : on écoute
+    c.on("stream",playRemote);
+  });
+  net.peer.on("disconnected",function(){ stat("Annuaire perdu — tentative de reconnexion…");
+    try{ net.peer.reconnect(); }catch(e){} });
+  net.peer.on("error",function(e){
+    var t=(e&&e.type)||"inconnue";
+    if(t==="peer-unavailable") stat("Aucune partie à ce code. Vérifiez les 6 lettres.");
+    else if(t==="unavailable-id"){ stat("Code déjà pris, nouveau tirage…"); net.peer.destroy(); netHost(); }
+    else if(t==="browser-incompatible") stat("Ce navigateur ne gère pas WebRTC.");
+    else stat("Erreur réseau : "+t);
+  });
 }
 function netHost(){
-  if(!window.Peer){ stat("PeerJS n’a pas pu être chargé."); return; }
+  if(!window.Peer){ stat("PeerJS n’a pas pu être chargé (réseau ?)."); return; }
   net.host=true; net.code=newCode();
-  net.peer=new Peer("tombeau-"+net.code);
+  net.peer=new Peer("tombeau-"+net.code,{debug:0});
   net.peer.on("open",function(){
     var e=$("#lcode"); e.textContent=net.code; e.classList.add("on");
     $("#gcodev").textContent=net.code; $("#gcode").classList.add("on");
-    stat("Code : "+net.code+" — transmettez-le à votre coéquipier.");
+    stat("Partie ouverte. Code : "+net.code+" — en attente du coéquipier.");
   });
-  net.peer.on("connection",wire);
-  net.peer.on("call",function(c){ c.answer(net.mic||undefined); c.on("stream",playRemote); });
-  net.peer.on("error",function(e){ stat("Erreur réseau : "+e.type); });
+  attachPeer();
 }
 function netJoin(){
-  if(!window.Peer){ stat("PeerJS n’a pas pu être chargé."); return; }
-  var code=($("#jcode").value||"").trim().toUpperCase();
-  if(code.length<4){ stat("Entrez le code reçu, puis appuyez sur Entrée."); return; }
-  net.peer=new Peer();
+  if(!window.Peer){ stat("PeerJS n’a pas pu être chargé (réseau ?)."); return; }
+  var code=($("#jcode").value||"").trim().toUpperCase().replace(/[^A-Z0-9]/g,"");
+  if(code.length!==6){ stat("Le code fait exactement 6 caractères."); return false; }
+  net.host=false; net.code=code;
+  net.peer=new Peer({debug:0});
   net.peer.on("open",function(){
-    wire(net.peer.connect("tombeau-"+code,{reliable:false}));
-    if(net.mic){ var c=net.peer.call("tombeau-"+code,net.mic); c.on("stream",playRemote); }
     stat("Connexion à "+code+"…");
+    wire(net.peer.connect("tombeau-"+code,{reliable:true}));
+    setTimeout(function(){                        // une seconde tentative si rien ne vient
+      if(!net.conn||!net.conn.open){ stat("Pas de réponse, nouvelle tentative…");
+        wire(net.peer.connect("tombeau-"+code,{reliable:true})); }
+    },3500);
   });
-  net.peer.on("call",function(c){ c.answer(net.mic||undefined); c.on("stream",playRemote); });
-  net.peer.on("error",function(e){ stat("Erreur réseau : "+e.type); });
+  attachPeer();
+  $("#gcodev").textContent=code; $("#gcode").classList.add("on");
+  return true;
 }
 function toggleMic(){
   var b=$("#bMic");
@@ -1521,25 +1587,25 @@ function toggleMic(){
     stat("Micro coupé."); return;
   }
   if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){
-    stat("Ce navigateur ne donne pas accès au micro."); return;
+    stat("Micro indisponible : la page doit être servie en HTTPS."); return;
   }
-  navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true}})
+  navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}})
     .then(function(st){
       net.mic=st; b.classList.add("live"); b.textContent="🎙 Micro actif";
-      stat("Micro actif. Il s’ouvrira vers votre coéquipier à la connexion.");
-      if(net.peer&&!net.host&&net.conn){
-        var c=net.peer.call(net.conn.peer,st); c.on("stream",playRemote);
-      }
+      stat(net.conn?"Micro actif — ouverture de la voix…":"Micro actif. Créez ou rejoignez une partie.");
+      tryCall();
     })
-    .catch(function(err){ stat("Micro refusé : "+err.name+". Autorisez le micro pour ce site."); });
+    .catch(function(err){ stat("Micro refusé ("+err.name+"). Autorisez-le dans la barre d’adresse."); });
 }
 (function(){
   var h=$("#bHost"), j=$("#bJoin"), m=$("#bMic"), jc=$("#jcode");
   if(!h) return;
   h.addEventListener("click",function(){ jc.classList.remove("on"); netHost(); startGame(); });
-  j.addEventListener("click",function(){ jc.classList.add("on"); jc.focus();
-    stat("Entrez le code de la partie, puis Entrée."); });
-  jc.addEventListener("keydown",function(e){ if(e.key==="Enter"){ netJoin(); startGame(); } });
+  j.addEventListener("click",function(){
+    jc.classList.add("on"); jc.focus();
+    stat("Entrez les 6 lettres du code, puis Entrée.");
+  });
+  jc.addEventListener("keydown",function(e){ if(e.key==="Enter"){ if(netJoin()) startGame(); } });
   m.addEventListener("click",toggleMic);
   setInterval(function(){
     if(!started) return;
